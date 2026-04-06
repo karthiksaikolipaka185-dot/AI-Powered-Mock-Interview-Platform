@@ -8,8 +8,11 @@ const rootRoutes = require('./src/routes/index');
 
 const app = express();
 
-// Standard middleware bounds natively executing formats
-app.use(cors());
+// Enable CORS for production (allowing all origins temporarily)
+// TODO: Replace "*" with actual Vercel domain after deployment (e.g., origin: "https://your-frontend.vercel.app")
+app.use(cors({
+  origin: "*",
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

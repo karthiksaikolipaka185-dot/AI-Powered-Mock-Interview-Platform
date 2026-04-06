@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Assuming an axios instance base configured for API proxying if required globally.
 const api = axios.create({
-    baseURL: '/api' // Adjust to context/environment variable mapping if needed
+    baseURL: `${import.meta.env.VITE_API_BASE_URL}/api`
 });
 
 export const uploadResume = async (file, role) => {
