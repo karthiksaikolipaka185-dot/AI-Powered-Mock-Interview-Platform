@@ -1,0 +1,34 @@
+const multer = require('multer');
+
+// Configure memory storage
+const storage = multer.memoryStorage();
+
+// File filter to allow PDF (resumes) and Audio (voice answers)
+const fileFilter = (req, file, cb) => {
+    if (file.mimetype === 'application/pdf' || file.mimetype.startsWith('audio/')) {
+        cb(null, true);
+    } else {
+        cb(new Error('Unsupported file type! Only PDF and Audio files are allowed.'), false);
+    }
+};
+
+// Create multer instance
+const upload = multer({ 
+    storage, 
+    fileFilter,
+    limits: {
+        fileSize: 10 * 1024 * 1024 // Increased to 10MB for longer audio sessions
+    }
+});
+
+// Middleware specifically for 'resume' field
+const uploadResume = upload.single('resume');
+
+// Middleware specifically for 'file' field in voice sessions
+const uploadAudio = upload.single('file'); 
+
+module.exports = {
+    upload,
+    uploadResume,
+    uploadAudio
+};
