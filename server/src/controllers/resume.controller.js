@@ -51,9 +51,10 @@ const uploadResume = async (req, res, next) => {
         });
     } catch (error) {
         console.error('Error in uploadResume controller:', error);
-        return res.status(500).json({
+        return res.status(error.statusCode || 500).json({
             success: false,
-            message: error.message || 'Internal server error during PDF parsing'
+            message: error.message || 'Internal server error during PDF parsing',
+            detail: process.env.NODE_ENV !== 'production' ? error.stack : undefined
         });
     }
 };

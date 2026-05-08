@@ -68,7 +68,8 @@ const InterviewSetupPage = () => {
                 localStorage.setItem("interviewId", data.interviewId); // NEW: Persist for start
             }
         } catch (error) {
-            setError('Failed to upload resume. Please try again.');
+            console.error('Resume upload failed:', error.response?.data || error.message);
+            setError(error.response?.data?.message || 'Failed to upload resume. Please try again.');
         } finally {
             setIsUploading(false);
         }

@@ -4,10 +4,13 @@ const Resume = require('../models/Resume.model');
 const parseResumePDF = async (pdfBuffer) => {
     try {
         // Use classic pdf-parse function version 1.1.1
+        console.log(`[parseResumePDF] Processing buffer of size: ${pdfBuffer.length} bytes`);
         const data = await pdfParse(pdfBuffer);
         
         // Extracted text is available on the .text property
-        return data.text ? data.text.trim() : '';
+        const text = data.text ? data.text.trim() : '';
+        console.log(`[parseResumePDF] Successfully extracted ${text.length} characters.`);
+        return text;
     } catch (error) {
         console.error('Error parsing PDF resume:', error);
         throw error;
@@ -17,12 +20,13 @@ const parseResumePDF = async (pdfBuffer) => {
 const saveResume = async (userId, fileName, extractedText) => {
     try {
         // Use findOneAndUpdate with upsert: true
-        // This ensures each user has only ONE resume and re-upload overwrites existing resume
+        console.log(`[saveResume] Saving resume for user: ${userId}, fileName: ${fileName}`);
         const savedResume = await Resume.findOneAndUpdate(
             { userId },
             { userId, fileName, extractedText },
             { new: true, upsert: true }
         );
+        console.log(`[saveResume] Database save successful.`);
         return savedResume;
     } catch (error) {
         console.error('Error saving resume:', error);
