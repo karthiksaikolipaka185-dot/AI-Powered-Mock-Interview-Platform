@@ -47,9 +47,12 @@ const startInterviewController = async (req, res, next) => {
         });
     } catch (error) {
         console.error('Error in startInterview controller:', error);
+        // Include more detail in the message for production debugging
+        const message = error.message || 'Internal server error initializing interview';
         return res.status(error.statusCode || 500).json({ 
             success: false, 
-            message: error.message || 'Internal server error initializing interview' 
+            message: message,
+            detail: process.env.NODE_ENV !== 'production' ? error.stack : undefined
         });
     }
 };

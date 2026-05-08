@@ -19,8 +19,10 @@ const {
     buildConversationHistory
 } = require('../constants/prompts');
 
-const startInterview = async (interviewId, userId, role, resumeText, userName, totalQuestions) => {
+const startInterview = async (interviewId, userId, role, resumeText, userName, totalQuestionsRaw) => {
     try {
+        const totalQuestions = parseInt(totalQuestionsRaw) || 5;
+        console.log(`[startInterview] Starting for user: ${userId}, role: ${role}, totalQuestions: ${totalQuestions}`);
         // 1. Fetch the existing Interview mapping userId context
         const interview = await Interview.findOne({ _id: interviewId, userId });
         if (!interview) {
@@ -31,8 +33,11 @@ const startInterview = async (interviewId, userId, role, resumeText, userName, t
 
         // 2. Generate Questions based on role & resume context
         const questionsPrompt = GENERATE_QUESTIONS_PROMPT(role, resumeText, totalQuestions);
+        console.log('[startInterview] Requesting questions from AI...');
         const rawAIResponse = await askGroq(questionsPrompt);
+        console.log('[startInterview] AI Response received. Parsing...');
         const parsedQuestions = parseAIJSON(rawAIResponse) || [];
+        console.log(`[startInterview] Successfully parsed ${parsedQuestions.length} questions.`);
 
         // 3. Add Intro Question mapping behavioral base
         const questions = [

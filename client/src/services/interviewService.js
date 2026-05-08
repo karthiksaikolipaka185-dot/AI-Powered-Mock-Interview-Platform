@@ -5,6 +5,15 @@ const api = axios.create({
     baseURL: `${import.meta.env.VITE_API_BASE_URL}/api`
 });
 
+// Inject token for all interview requests
+api.interceptors.request.use(config => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
 export const uploadResume = async (file, role) => {
     const formData = new FormData();
     formData.append('resume', file);
