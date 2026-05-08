@@ -11,7 +11,8 @@ const app = express();
 // Enable CORS for production (allowing all origins temporarily)
 // TODO: Replace "*" with actual Vercel domain after deployment (e.g., origin: "https://your-frontend.vercel.app")
 app.use(cors({
-  origin: "*",
+  origin: process.env.CLIENT_URL || "*",
+  credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

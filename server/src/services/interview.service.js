@@ -1,6 +1,6 @@
 const Interview = require('../models/Interview.model');
-const { askGemini } = require('./gemini.service');
-const { parseAIResponse: parseGeminiJSON } = require('../utils/prompts.utils');
+const { askGroq } = require('./groq.service');
+const { parseAIResponse: parseAIJSON } = require('../utils/prompts.utils');
 
 // Assuming murf.service will be created, mock its failure safely for now if missing
 let generateAudio;
@@ -31,8 +31,8 @@ const startInterview = async (interviewId, userId, role, resumeText, userName, t
 
         // 2. Generate Questions based on role & resume context
         const questionsPrompt = GENERATE_QUESTIONS_PROMPT(role, resumeText, totalQuestions);
-        const rawGeminiResponse = await askGemini(questionsPrompt);
-        const parsedQuestions = parseGeminiJSON(rawGeminiResponse) || [];
+        const rawAIResponse = await askGroq(questionsPrompt);
+        const parsedQuestions = parseAIJSON(rawAIResponse) || [];
 
         // 3. Add Intro Question mapping behavioral base
         const questions = [
@@ -42,7 +42,7 @@ const startInterview = async (interviewId, userId, role, resumeText, userName, t
 
         // 4. Generate Greeting utilizing candidate name
         const greetingPrompt = INTERVIEW_GREETING_PROMPT(userName, role);
-        const greetingText = await askGemini(greetingPrompt);
+        const greetingText = await askGroq(greetingPrompt);
 
         // 5. Generate Audio for the greeting (graceful failure)
         let audio = '';
@@ -86,7 +86,7 @@ const submitAnswer = async (interviewId, userAnswer) => {
 
     // Generate next question
     const followUpPrompt = FOLLOW_UP_PROMPT(conversationHistory);
-    const rawNextQuestion = await askGemini(followUpPrompt);
+    const rawNextQuestion = await askGroq(followUpPrompt);
     const nextQuestion = rawNextQuestion; // text follow-up
 
     // Generate audio (never break flow if fails)
@@ -127,13 +127,13 @@ const submitCode = async (interviewId, code, language) => {
     // Evaluate code
     const codingQuestion = interview.questions.find(q => q.type === 'coding')?.question || 'Coding logic problem';
     const evaluationPrompt = EVALUATE_CODE_PROMPT(codingQuestion, code);
-    const evaluationResultRaw = await askGemini(evaluationPrompt);
+    const evaluationResultRaw = await askGroq(evaluationPrompt);
 
     // Generate follow-up context bridging submission
     interview.messages.push({ role: 'user', content: `[Code Submission]: ${code}\n[Language]: ${language}\n[Evaluator Note]: ${evaluationResultRaw}` });
     
     const conversationHistory = buildConversationHistory(interview.messages);
-    const nextQuestion = await askGemini(FOLLOW_UP_PROMPT(conversationHistory));
+    const nextQuestion = await askGroq(FOLLOW_UP_PROMPT(conversationHistory));
 
     let audio = '';
     try {
@@ -178,12 +178,12 @@ const endInterview = async (interviewId, userId) => {
     const codeString = JSON.stringify(interview.codeSubmissions);
     
     const feedbackPrompt = FEEDBACK_PROMPT(interview.role, messagesString, codeString);
-    const feedbackRaw = await askGemini(feedbackPrompt);
+    const feedbackRaw = await askGroq(feedbackPrompt);
     
-    // Parse Gemini response (JSON) natively falling back to raw data map if unstructured
+    // Parse AI response (JSON) natively falling back to raw data map if unstructured
     let feedbackJson;
     try {
-        feedbackJson = parseGeminiJSON(feedbackRaw) || JSON.parse(feedbackRaw);
+        feedbackJson = parseAIJSON(feedbackRaw) || JSON.parse(feedbackRaw);
     } catch {
         feedbackJson = feedbackRaw;
     }
