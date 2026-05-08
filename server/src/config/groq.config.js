@@ -1,11 +1,13 @@
 const Groq = require("groq-sdk");
 
 // Centralize model configuration
-const MODEL_NAME = "llama-3.3-70b-versatile"; // or "mixtral-8x7b-32768"
+const MODEL_NAME = "llama3-8b-8192"; // Using standard model for higher reliability
 
 // Initialize Groq client using GROQ_API_KEY
 if (!process.env.GROQ_API_KEY) {
     console.error("CRITICAL: GROQ_API_KEY is missing from environment variables.");
+} else {
+    console.log(`[GroqConfig] API Key loaded (starts with: ${process.env.GROQ_API_KEY.substring(0, 7)}...)`);
 }
 
 const groq = new Groq({

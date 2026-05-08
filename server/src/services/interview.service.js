@@ -25,6 +25,8 @@ const startInterview = async (interviewId, userId, role, resumeText, userName, t
         console.log(`[startInterview] Starting for user: ${userId}, role: ${role}, totalQuestions: ${totalQuestions}`);
         // 1. Fetch the existing Interview mapping userId context
         const interview = await Interview.findOne({ _id: interviewId, userId });
+        console.log(`[startInterview] DB search: ${interview ? 'SUCCESS (Found)' : 'FAILED (Not Found)'}`);
+        
         if (!interview) {
             const error = new Error('Interview session context not found or unauthorized');
             error.statusCode = 404;
@@ -34,8 +36,16 @@ const startInterview = async (interviewId, userId, role, resumeText, userName, t
         // 2. Generate Questions based on role & resume context
         const questionsPrompt = GENERATE_QUESTIONS_PROMPT(role, resumeText, totalQuestions);
         console.log('[startInterview] Requesting questions from AI...');
-        const rawAIResponse = await askGroq(questionsPrompt);
-        console.log('[startInterview] AI Response received. Parsing...');
+        
+        let rawAIResponse;
+        try {
+            rawAIResponse = await askGroq(questionsPrompt);
+            console.log('[startInterview] AI Response received successfully.');
+        } catch (aiErr) {
+            console.error('[startInterview] AI Call Failed:', aiErr.message);
+            throw new Error(`AI Engine failed: ${aiErr.message}`);
+        }
+
         const parsedQuestions = parseAIJSON(rawAIResponse) || [];
         console.log(`[startInterview] Successfully parsed ${parsedQuestions.length} questions.`);
 

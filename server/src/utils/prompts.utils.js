@@ -1,6 +1,7 @@
 const parseAIResponse = (responseText) => {
     try {
         if (!responseText) return null;
+        console.log(`[parseAIResponse] Received text of length: ${responseText.length}`);
         
         // 1. Find the first [ and last ] to extract JSON array
         const start = responseText.indexOf('[');
