@@ -3,32 +3,53 @@ const parseAIResponse = (responseText) => {
         if (!responseText) return null;
         console.log(`[parseAIResponse] Received text of length: ${responseText.length}`);
         
-        // 1. Find the first [ and last ] to extract JSON array
-        const start = responseText.indexOf('[');
-        const end = responseText.lastIndexOf(']');
+        const cleaned = responseText.trim();
         
-        let jsonPart;
-        if (start !== -1 && end !== -1 && end > start) {
-            jsonPart = responseText.substring(start, end + 1);
-        } else {
-            // 2. Try object if array fails
-            const objStart = responseText.indexOf('{');
-            const objEnd = responseText.lastIndexOf('}');
-            if (objStart !== -1 && objEnd !== -1 && objEnd > objStart) {
-                jsonPart = responseText.substring(objStart, objEnd + 1);
+        // 1. Try parsing the whole thing first (Fast path)
+        try {
+            return JSON.parse(cleaned);
+        } catch (e) {}
+
+        // 2. Try extracting from markdown blocks
+        const mdMatch = cleaned.match(/```json\s*([\s\S]*?)\s*```/) || cleaned.match(/```\s*([\s\S]*?)\s*```/);
+        if (mdMatch) {
+            try {
+                return JSON.parse(mdMatch[1].trim());
+            } catch (e) {}
+        }
+
+        // 3. Robust scan for JSON structures (handles trailing conversational text)
+        const firstOpenBrace = cleaned.indexOf('{');
+        const firstOpenBracket = cleaned.indexOf('[');
+        
+        let startChar, endChar;
+        if (firstOpenBrace !== -1 && (firstOpenBracket === -1 || firstOpenBrace < firstOpenBracket)) {
+            startChar = '{';
+            endChar = '}';
+        } else if (firstOpenBracket !== -1) {
+            startChar = '[';
+            endChar = ']';
+        }
+
+        if (startChar) {
+            let start = cleaned.indexOf(startChar);
+            let end = cleaned.lastIndexOf(endChar);
+            
+            // Iteratively shrink the window if parsing fails (to handle multiple objects/noise)
+            while (start !== -1 && end !== -1 && end > start) {
+                const potentialJson = cleaned.substring(start, end + 1);
+                try {
+                    return JSON.parse(potentialJson);
+                } catch (e) {
+                    end = cleaned.lastIndexOf(endChar, end - 1);
+                }
             }
         }
 
-        if (!jsonPart) {
-            // Fallback: try parsing whole text if no brackets found (legacy behavior)
-            return JSON.parse(responseText.replace(/```(?:json)?/g, '').trim());
-        }
-        
-        return JSON.parse(jsonPart);
+        throw new Error('Could not find valid JSON in AI response');
     } catch (error) {
-        // Log errors if parsing fails with raw context
         console.error('Error parsing AI JSON response:', error.message);
-        console.log('Failed Raw AI Response Snippet:', responseText.substring(0, 500) + (responseText.length > 500 ? '...' : ''));
+        console.log('Failed Raw AI Response Snippet:', responseText.substring(0, 500));
         throw new Error('AI returned an invalid data format. Please try again.');
     }
 };

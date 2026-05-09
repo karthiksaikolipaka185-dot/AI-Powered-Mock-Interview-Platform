@@ -23,17 +23,32 @@ const transcribeAudio = async (audioBuffer, originalName) => {
         // Save buffer to temp file using fs
         await fs.promises.writeFile(tempFilePath, audioBuffer);
 
-        // Send file to AssemblyAI with mandatory speech_models list
-        const transcript = await client.transcripts.transcribe({ 
-            audio: tempFilePath,
-            speech_models: ["universal-3-pro", "universal-2"]
-        });
+        // Send file to AssemblyAI with retry logic
+        let transcript;
+        let attempts = 0;
+        const maxAttempts = 3;
+
+        while (attempts < maxAttempts) {
+            try {
+                transcript = await client.transcripts.transcribe({ 
+                    audio: tempFilePath,
+                    speech_models: ["universal-3-pro", "universal-2"]
+                });
+                break; // Success!
+            } catch (err) {
+                attempts++;
+                console.warn(`[AssemblyAI] Attempt ${attempts} failed:`, err.message);
+                if (attempts >= maxAttempts) throw err;
+                // Wait 1s before retry
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
 
         // Extract transcription text
         return transcript.text;
     } catch (error) {
         // Handle API errors gracefully
-        console.error('Application Error: AssemblyAI transcription failed:', error.message || error);
+        console.error('Application Error: AssemblyAI transcription failed after retries:', error.message || error);
         throw error;
     } finally {
         // Cleanup: Delete temp file after processing (success or failure)

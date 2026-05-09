@@ -1,7 +1,7 @@
 const Groq = require("groq-sdk");
 
 // Centralize model configuration
-const MODEL_NAME = "llama3-8b-8192"; // Using standard model for higher reliability
+const MODEL_NAME = "llama-3.1-8b-instant"; // Supported stable model
 
 // Initialize Groq client using GROQ_API_KEY
 if (!process.env.GROQ_API_KEY) {
