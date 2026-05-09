@@ -49,26 +49,28 @@ const FEEDBACK_PROMPT = (role, conversationHistory, codeSubmissions) => `
 You are an expert technical interviewer evaluating a candidate for the ${role} position.
 Based on the following conversation and code submissions, generate constructive feedback.
 
-Provide the response strictly as a JSON object with the following structure:
-{
-  "scores": {
-    "Communication Skills": <number out of 10>,
-    "Technical Knowledge": <number out of 10>,
-    "Problem Solving": <number out of 10>,
-    "Code Quality": <number out of 10>,
-    "Overall Performance": <number out of 10>
-  },
-  "strengths": ["string"],
-  "weaknesses": ["string"],
-  "suggestions": ["string"]
-}
-
-Conversation History:
-${conversationHistory}
-
-Code Submissions:
-${codeSubmissions}
-`;
+ Provide the response STRICTLY as a valid JSON object. Do not include any introductory or concluding text. Use exactly this structure:
+ {
+   "scores": {
+     "Communication Skills": <number 0-10>,
+     "Technical Knowledge": <number 0-10>,
+     "Problem Solving": <number 0-10>,
+     "Code Quality": <number 0-10>,
+     "Overall Performance": <number 0-10>
+   },
+   "strengths": ["string"],
+   "weaknesses": ["string"],
+   "suggestions": ["string"]
+ }
+ 
+ IMPORTANT: Values in "scores" must be numbers, not strings.
+ 
+ Conversation History:
+ ${conversationHistory}
+ 
+ Code Submissions:
+ ${codeSubmissions}
+ `;
 
 const EVALUATE_CODE_PROMPT = (question, code) => `
 Evaluate the following code submission for the question: "${question}".

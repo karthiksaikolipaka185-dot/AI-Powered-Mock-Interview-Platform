@@ -189,22 +189,34 @@ const endInterview = async (interviewId, userId) => {
     }
 
     // Generate feedback utilizing fully embedded layout
-    const messagesString = JSON.stringify(interview.messages);
+    const conversationHistory = buildConversationHistory(interview.messages);
     const codeString = JSON.stringify(interview.codeSubmissions);
     
-    const feedbackPrompt = FEEDBACK_PROMPT(interview.role, messagesString, codeString);
+    const feedbackPrompt = FEEDBACK_PROMPT(interview.role, conversationHistory, codeString);
     const feedbackRaw = await askGroq(feedbackPrompt);
     
-    // Parse AI response (JSON) natively falling back to raw data map if unstructured
+    // Parse AI response (JSON) natively falling back to empty object if fails
     let feedbackJson;
     try {
-        feedbackJson = parseAIJSON(feedbackRaw) || JSON.parse(feedbackRaw);
-    } catch {
-        feedbackJson = feedbackRaw;
+        feedbackJson = parseAIJSON(feedbackRaw);
+        if (!feedbackJson) throw new Error("Parser returned null");
+    } catch (err) {
+        console.error('[endInterview] Feedback parsing failed, using fallback regex/json.parse');
+        try {
+            // Last ditch effort: find anything between {}
+            const match = feedbackRaw.match(/\{[\s\S]*\}/);
+            feedbackJson = JSON.parse(match ? match[0] : feedbackRaw);
+        } catch (e) {
+            feedbackJson = {};
+        }
     }
 
+    // NORMALIZE: Ensure frontend gets what it expects
+    const finalFeedback = normalizeFeedback(feedbackJson);
+    console.log('[endInterview] Normalized feedback score:', finalFeedback.scores["Overall Performance"]);
+
     // Mark completed safely mapping explicitly mapped state requirements 
-    interview.feedback = feedbackJson;
+    interview.feedback = finalFeedback;
     interview.status = 'completed';
     await interview.save();
 
@@ -224,6 +236,52 @@ const getInterviewById = async (interviewId, userId) => {
         throw error;
     }
     return interview;
+};
+
+/**
+ * Ensures feedback follows a strict structure and scores are valid numbers
+ */
+const normalizeFeedback = (rawFeedback) => {
+    // Default structure
+    const normalized = {
+        scores: {
+            "Communication Skills": 0,
+            "Technical Knowledge": 0,
+            "Problem Solving": 0,
+            "Code Quality": 0,
+            "Overall Performance": 0
+        },
+        strengths: [],
+        weaknesses: [],
+        suggestions: []
+    };
+
+    if (!rawFeedback || typeof rawFeedback !== 'object') return normalized;
+
+    // Helper to extract numeric value from various formats (e.g. 8, "8", "8/10")
+    const toScore = (val) => {
+        if (typeof val === 'number') return Math.min(10, Math.max(0, val));
+        if (typeof val === 'string') {
+            const num = parseInt(val.split('/')[0]);
+            return isNaN(num) ? 0 : Math.min(10, Math.max(0, num));
+        }
+        return 0;
+    };
+
+    // Map scores safely
+    if (rawFeedback.scores) {
+        normalized.scores["Communication Skills"] = toScore(rawFeedback.scores["Communication Skills"] || rawFeedback.scores["communication"]);
+        normalized.scores["Technical Knowledge"] = toScore(rawFeedback.scores["Technical Knowledge"] || rawFeedback.scores["technical"]);
+        normalized.scores["Problem Solving"] = toScore(rawFeedback.scores["Problem Solving"] || rawFeedback.scores["problem_solving"]);
+        normalized.scores["Code Quality"] = toScore(rawFeedback.scores["Code Quality"] || rawFeedback.scores["code_quality"]);
+        normalized.scores["Overall Performance"] = toScore(rawFeedback.scores["Overall Performance"] || rawFeedback.scores["overall"]);
+    }
+
+    normalized.strengths = Array.isArray(rawFeedback.strengths) ? rawFeedback.strengths : [];
+    normalized.weaknesses = Array.isArray(rawFeedback.weaknesses) ? rawFeedback.weaknesses : [];
+    normalized.suggestions = Array.isArray(rawFeedback.suggestions) ? rawFeedback.suggestions : [];
+
+    return normalized;
 };
 
 module.exports = {
