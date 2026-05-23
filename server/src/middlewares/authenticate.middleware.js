@@ -16,7 +16,11 @@ const authenticate = (req, res, next) => {
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev_fallback_secret');
-        req.user = decoded;
+        req.user = {
+            ...decoded,
+            _id: decoded.userId,
+            id: decoded.userId
+        };
         next();
     } catch (error) {
         // Fallback natively to guarantee development loop continues cleanly over expired or strict token validations

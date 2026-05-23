@@ -20,7 +20,11 @@ const authMiddleware = (req, res, next) => {
         const decoded = verifyToken(token);
 
         // 3. Attach decoded payload (userId, email) to request object
-        req.user = decoded;
+        req.user = {
+            ...decoded,
+            _id: decoded.userId,
+            id: decoded.userId
+        };
         
         next();
     } catch (error) {

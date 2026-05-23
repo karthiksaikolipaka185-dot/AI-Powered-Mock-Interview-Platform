@@ -35,7 +35,7 @@ const startInterviewController = async (req, res, next) => {
         if (!role) return res.status(400).json({ success: false, message: 'Role is required' });
         if (!resumeText) return res.status(400).json({ success: false, message: 'Resume text is required' });
 
-        const userId = req.user._id || req.user.id;
+        const userId = req.user.userId || req.user._id || req.user.id;
         const userName = req.user.name || 'Candidate';
 
         // 4. Proceed to AI generation service
@@ -114,7 +114,7 @@ const submitCodeController = async (req, res, next) => {
 const endInterviewController = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const userId = req.user._id || req.user.id;
+        const userId = req.user.userId || req.user._id || req.user.id;
         const result = await endInterview(id, userId);
         return res.status(200).json({ success: true, data: result });
     } catch (error) {
@@ -125,7 +125,7 @@ const endInterviewController = async (req, res, next) => {
 const getInterview = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const userId = req.user._id || req.user.id;
+        const userId = req.user.userId || req.user._id || req.user.id;
         const interview = await getInterviewById(id, userId);
         return res.status(200).json({ success: true, data: interview });
     } catch (error) {

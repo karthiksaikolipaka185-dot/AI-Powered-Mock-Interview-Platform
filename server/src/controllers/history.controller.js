@@ -6,7 +6,7 @@ const getHistory = async (req, res, next) => {
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
         
-        const userId = req.user._id || req.user.id;
+        const userId = req.user.userId || req.user._id || req.user.id;
 
         const paginatedResult = await getUserHistory(userId, page, limit);
 
@@ -22,7 +22,7 @@ const getHistory = async (req, res, next) => {
 const getHistoryItem = async (req, res, next) => {
     try {
         const entryId = req.params.id;
-        const userId = req.user._id || req.user.id;
+        const userId = req.user.userId || req.user._id || req.user.id;
 
         const result = await getHistoryEntry(entryId, userId);
 
@@ -41,7 +41,7 @@ const getHistoryItem = async (req, res, next) => {
 const deleteHistoryItem = async (req, res, next) => {
     try {
         const entryId = req.params.id;
-        const userId = req.user._id || req.user.id;
+        const userId = req.user.userId || req.user._id || req.user.id;
 
         await deleteHistoryEntry(entryId, userId);
 
@@ -56,7 +56,7 @@ const deleteHistoryItem = async (req, res, next) => {
 
 const clearHistory = async (req, res, next) => {
     try {
-        const userId = req.user._id || req.user.id;
+        const userId = req.user.userId || req.user._id || req.user.id;
 
         const deletedCount = await clearUserHistory(userId);
 
