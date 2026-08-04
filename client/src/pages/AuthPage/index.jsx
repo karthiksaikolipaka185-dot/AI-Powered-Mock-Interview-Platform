@@ -9,7 +9,9 @@ import {
     UserPlus, 
     ArrowRight,
     AlertCircle,
-    CheckCircle2
+    CheckCircle2,
+    ShieldCheck,
+    MailCheck
 } from 'lucide-react';
 
 const GoogleIcon = () => (
@@ -34,6 +36,20 @@ const AuthPage = () => {
         password: ''
     });
 
+    // Email RFC Validation Regex
+    const isValidEmail = (email) => {
+        return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.trim());
+    };
+
+    // Password Policy Checkers
+    const passwordRequirements = [
+        { label: 'At least 8 characters', check: (p) => p.length >= 8 },
+        { label: 'One uppercase letter (A-Z)', check: (p) => /[A-Z]/.test(p) },
+        { label: 'One lowercase letter (a-z)', check: (p) => /[a-z]/.test(p) },
+        { label: 'One number (0-9)', check: (p) => /[0-9]/.test(p) },
+        { label: 'One special character (!@#$%^&*)', check: (p) => /[!@#$%^&*(),.?":{}|<>]/.test(p) },
+    ];
+
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
         setError('');
@@ -45,38 +61,57 @@ const AuthPage = () => {
         setError('');
         setSuccess('');
 
+        // 1. Frontend Email Format Validation
+        if (!isValidEmail(formData.email)) {
+            setError('Please enter a valid RFC-compliant email address (e.g. name@domain.com).');
+            setLoading(false);
+            return;
+        }
+
+        // 2. Frontend Password Policy Validation on Registration
+        if (!isLogin) {
+            const failedReq = passwordRequirements.find(r => !r.check(formData.password));
+            if (failedReq) {
+                setError(`Password error: ${failedReq.label}`);
+                setLoading(false);
+                return;
+            }
+        }
+
         try {
             let response;
             if (isLogin) {
-                // Remove name from payload if logging in
                 const { email, password } = formData;
                 response = await authService.login({ email, password });
+                if (response.success) {
+                    setSuccess('Login successful!');
+                    setTimeout(() => {
+                        navigate('/');
+                    }, 1000);
+                }
             } else {
                 response = await authService.register(formData);
-            }
-
-            if (response.success) {
-                setSuccess(isLogin ? 'Login successful!' : 'Account created successfully!');
-                setTimeout(() => {
-                    navigate('/');
-                }, 1500);
-            } else {
-                setError(response.message || 'Authentication failed');
+                if (response.success) {
+                    setSuccess(response.message || 'Account created successfully! Please check your email inbox to verify your account.');
+                    setIsLogin(true); // Switch to login view
+                    setFormData({ name: '', email: formData.email, password: '' });
+                }
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'An unexpected error occurred. Please try again.');
+            console.error('Auth error:', err);
+            setError(err.response?.data?.message || 'An unexpected authentication error occurred.');
         } finally {
             setLoading(false);
         }
     };
 
     const handleGoogleLogin = () => {
-        // Placeholder for Google OAuth logic integration
-        alert('Google OAuth integration is being initialized. Please use Email/Password for now.');
+        // Trigger Google Identity Services OAuth popup or notification
+        alert('Google OAuth login endpoint is live at /api/auth/google. Please configure GOOGLE_CLIENT_ID in server/.env for production OAuth consent flow.');
     };
 
     return (
-        <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-slate-50 relative overflow-hidden">
+        <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-950 relative overflow-hidden">
             {/* Decorative Background Elements */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                 <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary-500/5 rounded-full blur-[120px]"></div>
@@ -84,16 +119,16 @@ const AuthPage = () => {
             </div>
 
             <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-500">
-                <div className="bg-white rounded-3xl border border-slate-200 card-shadow overflow-hidden">
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 card-shadow overflow-hidden">
                     {/* Header */}
                     <div className="p-8 pb-4 text-center">
                         <div className="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-primary-500/20">
                             {isLogin ? <LogIn className="text-white" size={32} /> : <UserPlus className="text-white" size={32} />}
                         </div>
-                        <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">
+                        <h2 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">
                             {isLogin ? 'Welcome Back' : 'Get Started'}
                         </h2>
-                        <p className="text-slate-500 mt-2 font-medium">
+                        <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
                             {isLogin ? 'Sign in to continue your interview practice' : 'Create an account to start your AI journey'}
                         </p>
                     </div>
@@ -101,26 +136,26 @@ const AuthPage = () => {
                     {/* Form Area */}
                     <div className="p-8 pt-4">
                         {error && (
-                            <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
+                            <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/60 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
                                 <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={18} />
-                                <p className="text-sm font-bold text-rose-600">{error}</p>
+                                <p className="text-xs font-bold text-rose-600 dark:text-rose-400">{error}</p>
                             </div>
                         )}
 
                         {success && (
-                            <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
-                                <CheckCircle2 className="text-emerald-500 shrink-0 mt-0.5" size={18} />
-                                <p className="text-sm font-bold text-emerald-600">{success}</p>
+                            <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/60 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
+                                <MailCheck className="text-emerald-500 shrink-0 mt-0.5" size={20} />
+                                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{success}</p>
                             </div>
                         )}
 
                         <form onSubmit={handleSubmit} className="space-y-4">
                             {!isLogin && (
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Full Name</label>
                                     <div className="relative group">
                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <UserIcon className="text-slate-400 group-focus-within:text-primary-500 transition-colors" size={18} />
+                                            <UserIcon className="text-slate-400 dark:text-slate-500 group-focus-within:text-primary-500 transition-colors" size={18} />
                                         </div>
                                         <input 
                                             type="text"
@@ -129,17 +164,17 @@ const AuthPage = () => {
                                             value={formData.name}
                                             onChange={handleChange}
                                             placeholder="John Doe"
-                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-500 focus:bg-white transition-all font-medium text-slate-800"
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-slate-900 transition-all font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
                                         />
                                     </div>
                                 </div>
                             )}
 
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                                <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Email Address</label>
                                 <div className="relative group">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <Mail className="text-slate-400 group-focus-within:text-primary-500 transition-colors" size={18} />
+                                        <Mail className="text-slate-400 dark:text-slate-500 group-focus-within:text-primary-500 transition-colors" size={18} />
                                     </div>
                                     <input 
                                         type="email"
@@ -147,22 +182,22 @@ const AuthPage = () => {
                                         required
                                         value={formData.email}
                                         onChange={handleChange}
-                                        placeholder="name@company.com"
-                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-500 focus:bg-white transition-all font-medium text-slate-800"
+                                        placeholder="john@gmail.com"
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-slate-900 transition-all font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
                                     />
                                 </div>
                             </div>
 
                             <div className="space-y-1.5">
                                 <div className="flex justify-between items-center ml-1">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Password</label>
+                                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Password</label>
                                     {isLogin && (
-                                        <button type="button" className="text-[10px] font-bold text-primary-600 hover:text-primary-700 tracking-tight">Forgot?</button>
+                                        <button type="button" className="text-[10px] font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 tracking-tight">Forgot?</button>
                                     )}
                                 </div>
                                 <div className="relative group">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <Lock className="text-slate-400 group-focus-within:text-primary-500 transition-colors" size={18} />
+                                        <Lock className="text-slate-400 dark:text-slate-500 group-focus-within:text-primary-500 transition-colors" size={18} />
                                     </div>
                                     <input 
                                         type="password"
@@ -171,9 +206,25 @@ const AuthPage = () => {
                                         value={formData.password}
                                         onChange={handleChange}
                                         placeholder="••••••••"
-                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-500 focus:bg-white transition-all font-medium text-slate-800"
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-slate-900 transition-all font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
                                     />
                                 </div>
+
+                                {/* Password Policy Checklist on Signup */}
+                                {!isLogin && formData.password.length > 0 && (
+                                    <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/60 text-[11px] space-y-1 mt-2">
+                                        <span className="font-bold text-slate-400 block mb-1">Password Requirements:</span>
+                                        {passwordRequirements.map((req, idx) => {
+                                            const met = req.check(formData.password);
+                                            return (
+                                                <div key={idx} className={`flex items-center gap-1.5 font-medium ${met ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+                                                    {met ? <CheckCircle2 size={12} /> : <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 ml-1"></div>}
+                                                    <span>{req.label}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
 
                             <button 
@@ -195,10 +246,10 @@ const AuthPage = () => {
                         {/* Divider */}
                         <div className="relative my-8">
                             <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-slate-100"></div>
+                                <div className="w-full border-t border-slate-100 dark:border-slate-800"></div>
                             </div>
                             <div className="relative flex justify-center text-xs font-bold uppercase tracking-widest">
-                                <span className="bg-white px-4 text-slate-300">Or continue with</span>
+                                <span className="bg-white dark:bg-slate-900 px-4 text-slate-300 dark:text-slate-600">Or continue with</span>
                             </div>
                         </div>
 
@@ -206,7 +257,7 @@ const AuthPage = () => {
                         <button 
                             type="button"
                             onClick={handleGoogleLogin}
-                            className="w-full bg-white border border-slate-200 rounded-2xl py-3.5 font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center justify-center gap-3 card-shadow-sm"
+                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3.5 font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/80 active:scale-[0.98] transition-all flex items-center justify-center gap-3 card-shadow-sm"
                         >
                             <GoogleIcon />
                             Google Account
@@ -214,12 +265,12 @@ const AuthPage = () => {
                     </div>
 
                     {/* Footer */}
-                    <div className="p-6 bg-slate-50/50 border-t border-slate-100 text-center">
-                        <p className="text-sm font-medium text-slate-500">
+                    <div className="p-6 bg-slate-50/50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800 text-center">
+                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                             {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
                             <button 
-                                onClick={() => setIsLogin(!isLogin)} 
-                                className="text-primary-600 font-extrabold hover:text-primary-700 hover:underline transition-all"
+                                onClick={() => { setIsLogin(!isLogin); setError(''); setSuccess(''); }} 
+                                className="text-primary-600 dark:text-primary-400 font-extrabold hover:text-primary-700 dark:hover:text-primary-300 hover:underline transition-all"
                             >
                                 {isLogin ? 'Sign Up Free' : 'Sign In'}
                             </button>

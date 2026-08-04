@@ -5,14 +5,18 @@ const api = axios.create({
 });
 
 /**
- * Register a new user.
+ * Register a new user with email verification requirement.
  */
 export const register = async (userData) => {
     const response = await api.post('/register', userData);
-    if (response.data.success && response.data.data.token) {
-        localStorage.setItem('token', response.data.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.data.user));
-    }
+    return response.data;
+};
+
+/**
+ * Verify candidate email token link.
+ */
+export const verifyEmailToken = async (token) => {
+    const response = await api.get(`/verify-email/${token}`);
     return response.data;
 };
 
@@ -73,6 +77,15 @@ export const isAuthenticated = () => {
 };
 
 /**
+ * Check if the currently authenticated user is the designated admin.
+ */
+export const isAdmin = () => {
+    const user = getCurrentUser();
+    const adminEmail = 'karthiksaikolipaka185@gmail.com';
+    return user && user.email && user.email.toLowerCase() === adminEmail.toLowerCase();
+};
+
+/**
  * Helper to get the JWT token.
  */
 export const getToken = () => {
@@ -81,10 +94,12 @@ export const getToken = () => {
 
 export default {
     register,
+    verifyEmailToken,
     login,
     googleLogin,
     logout,
     getCurrentUser,
     isAuthenticated,
+    isAdmin,
     getToken
 };

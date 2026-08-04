@@ -1,16 +1,17 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900;
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300;
   }
 }
 
 .glass {
-  @apply bg-white/80 backdrop-blur-md;
+  @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md;
 }
 
 .card-shadow {
-  @apply shadow-[0_8px_30px_rgb(0,0,0,0.04)];
+  @apply shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)];
 }

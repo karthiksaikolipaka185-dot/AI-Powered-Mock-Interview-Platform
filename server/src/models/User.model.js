@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema({
     googleId: {
         type: String,
         unique: true,
-        sparse: true // Allows multiple users to have null googleId (e.g., email-only users)
+        sparse: true
     },
     email: {
         type: String,
@@ -20,12 +20,24 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: function() {
-            return !this.googleId; // Password is only required if not logged in via Google
+            return !this.googleId;
         }
     },
     picture: {
         type: String,
         default: ''
+    },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    verificationToken: {
+        type: String,
+        default: null
+    },
+    verificationTokenExpires: {
+        type: Date,
+        default: null
     },
     lastLogin: {
         type: Date,
@@ -35,6 +47,6 @@ const userSchema = new mongoose.Schema({
     timestamps: true
 });
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 module.exports = User;

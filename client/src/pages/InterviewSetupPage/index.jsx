@@ -17,9 +17,9 @@ import {
 } from 'lucide-react';
 
 const DIFFICULTY_OPTS = [
-    { label: 'Easy', questions: 5, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-50', border: 'hover:border-emerald-200' },
-    { label: 'Medium', questions: 10, icon: Brain, color: 'text-amber-500', bg: 'bg-amber-50', border: 'hover:border-amber-200' },
-    { label: 'Hard', questions: 15, icon: Flame, color: 'text-rose-500', bg: 'bg-rose-50', border: 'hover:border-rose-200' }
+    { label: 'Easy', questions: 5, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/50', border: 'hover:border-emerald-200 dark:hover:border-emerald-800' },
+    { label: 'Medium', questions: 10, icon: Brain, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/50', border: 'hover:border-amber-200 dark:hover:border-amber-800' },
+    { label: 'Hard', questions: 15, icon: Flame, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-950/50', border: 'hover:border-rose-200 dark:hover:border-rose-800' }
 ];
 
 const InterviewSetupPage = () => {
@@ -116,7 +116,7 @@ const InterviewSetupPage = () => {
             {/* Stepper Header */}
             <div className="mb-12">
                 <div className="flex items-center justify-between relative">
-                    <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-200 -translate-y-1/2 z-0"></div>
+                    <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-200 dark:bg-slate-800 -translate-y-1/2 z-0"></div>
                     {steps.map((s) => {
                         const Icon = s.icon;
                         const isCompleted = step > s.id;
@@ -126,14 +126,14 @@ const InterviewSetupPage = () => {
                             <div key={s.id} className="relative z-10 flex flex-col items-center gap-3">
                                 <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 border-4 ${
                                     isCompleted 
-                                    ? 'bg-primary-600 border-white text-white rotate-[360deg]' 
+                                    ? 'bg-primary-600 border-white dark:border-slate-900 text-white rotate-[360deg]' 
                                     : isActive 
-                                    ? 'bg-white border-primary-600 text-primary-600' 
-                                    : 'bg-white border-slate-200 text-slate-400'
+                                    ? 'bg-white dark:bg-slate-900 border-primary-600 text-primary-600 dark:text-primary-400' 
+                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500'
                                 } shadow-md`}>
                                     {isCompleted ? <CheckCircle size={24} /> : <Icon size={22} />}
                                 </div>
-                                <span className={`text-xs font-bold uppercase tracking-widest ${isActive ? 'text-primary-600' : 'text-slate-400'}`}>
+                                <span className={`text-xs font-bold uppercase tracking-widest ${isActive ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 dark:text-slate-500'}`}>
                                     {s.label}
                                 </span>
                             </div>
@@ -144,26 +144,26 @@ const InterviewSetupPage = () => {
 
             {/* Error Message */}
             {error && (
-                <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3 text-rose-600 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/60 rounded-xl flex items-center gap-3 text-rose-600 dark:text-rose-400 animate-in fade-in slide-in-from-top-2 duration-300">
                     <AlertCircle size={20} />
                     <p className="text-sm font-medium">{error}</p>
                 </div>
             )}
 
             {/* Step Content */}
-            <div className="bg-white rounded-3xl p-8 md:p-12 border border-slate-200 card-shadow">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 md:p-12 border border-slate-200 dark:border-slate-800 card-shadow">
                 {step === 1 && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                         <div className="text-center space-y-2">
-                            <h2 className="text-3xl font-extrabold text-slate-800">What's the target role?</h2>
-                            <p className="text-slate-500">The AI will generate questions specific to this position.</p>
+                            <h2 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">What's the target role?</h2>
+                            <p className="text-slate-500 dark:text-slate-400">The AI will generate questions specific to this position.</p>
                         </div>
                         <div className="relative group">
-                            <Briefcase className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-500 transition-colors" size={24} />
+                            <Briefcase className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-primary-500 transition-colors" size={24} />
                             <input 
                                 type="text" 
                                 placeholder="e.g. Senior Frontend Engineer"
-                                className="w-full pl-14 pr-6 py-5 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-primary-500 outline-none text-lg font-medium transition-all"
+                                className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-2xl focus:border-primary-500 outline-none text-lg font-medium transition-all"
                                 value={role}
                                 onChange={(e) => setRole(e.target.value)}
                                 autoFocus
@@ -182,8 +182,8 @@ const InterviewSetupPage = () => {
                 {step === 2 && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                         <div className="text-center space-y-2">
-                            <h2 className="text-3xl font-extrabold text-slate-800">Set the challenge</h2>
-                            <p className="text-slate-500">Choose a difficulty level for your technical assessment.</p>
+                            <h2 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">Set the challenge</h2>
+                            <p className="text-slate-500 dark:text-slate-400">Choose a difficulty level for your technical assessment.</p>
                         </div>
                         <div className="grid grid-cols-1 gap-4">
                             {DIFFICULTY_OPTS.map((opt) => {
@@ -195,8 +195,8 @@ const InterviewSetupPage = () => {
                                         onClick={() => setDifficulty(opt.label)}
                                         className={`flex items-center justify-between p-6 rounded-2xl border-2 transition-all duration-300 ${
                                             isSelected 
-                                            ? 'border-primary-600 bg-primary-50 ring-4 ring-primary-50' 
-                                            : `border-slate-100 bg-slate-50 ${opt.border}`
+                                            ? 'border-primary-600 bg-primary-50 dark:bg-primary-950/50 ring-4 ring-primary-50 dark:ring-primary-950/30' 
+                                            : `border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 ${opt.border}`
                                         }`}
                                     >
                                         <div className="flex items-center gap-4">
@@ -204,11 +204,11 @@ const InterviewSetupPage = () => {
                                                 <Icon size={24} />
                                             </div>
                                             <div className="text-left">
-                                                <h4 className="font-bold text-slate-800 text-lg">{opt.label}</h4>
-                                                <p className="text-slate-500 text-sm">Targeting {opt.questions} core questions</p>
+                                                <h4 className="font-bold text-slate-800 dark:text-slate-100 text-lg">{opt.label}</h4>
+                                                <p className="text-slate-500 dark:text-slate-400 text-sm">Targeting {opt.questions} core questions</p>
                                             </div>
                                         </div>
-                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-primary-600 bg-primary-600 text-white' : 'border-slate-200'}`}>
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-primary-600 bg-primary-600 text-white' : 'border-slate-200 dark:border-slate-700'}`}>
                                             {isSelected && <CheckCircle size={16} />}
                                         </div>
                                     </button>
@@ -216,7 +216,7 @@ const InterviewSetupPage = () => {
                             })}
                         </div>
                         <div className="flex gap-4 pt-4">
-                            <button onClick={() => setStep(1)} className="flex-1 py-5 border-2 border-slate-100 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                            <button onClick={() => setStep(1)} className="flex-1 py-5 border-2 border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
                                 <ChevronLeft size={20} /> Back
                             </button>
                             <button onClick={() => setStep(3)} disabled={!difficulty} className="flex-[2] py-5 bg-primary-600 text-white rounded-2xl font-bold text-lg hover:bg-primary-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
@@ -229,12 +229,12 @@ const InterviewSetupPage = () => {
                 {step === 3 && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                         <div className="text-center space-y-2">
-                            <h2 className="text-3xl font-extrabold text-slate-800">Final Step: Your Context</h2>
-                            <p className="text-slate-500">Provide your resume so the AI can customize the questions.</p>
+                            <h2 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">Final Step: Your Context</h2>
+                            <p className="text-slate-500 dark:text-slate-400">Provide your resume so the AI can customize the questions.</p>
                         </div>
 
                         <div className={`relative border-2 border-dashed rounded-3xl p-10 transition-all duration-300 flex flex-col items-center justify-center text-center gap-4 ${
-                            fileName ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50 hover:border-primary-300'
+                            fileName ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 hover:border-primary-300 dark:hover:border-primary-700'
                         }`}>
                             <input 
                                 type="file" 
@@ -246,30 +246,30 @@ const InterviewSetupPage = () => {
                             
                             {isUploading ? (
                                 <>
-                                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm">
+                                    <div className="w-16 h-16 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center shadow-sm">
                                         <Loader2 size={32} className="text-primary-600 animate-spin" />
                                     </div>
-                                    <h4 className="font-bold text-slate-700">Analyzing Resume...</h4>
+                                    <h4 className="font-bold text-slate-700 dark:text-slate-200">Analyzing Resume...</h4>
                                 </>
                             ) : fileName ? (
                                 <>
-                                    <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center shadow-sm">
+                                    <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center shadow-sm">
                                         <CheckCircle size={32} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-800 text-lg">{fileName}</h4>
-                                        <p className="text-emerald-600 text-sm font-medium">Successfully processed</p>
+                                        <h4 className="font-bold text-slate-800 dark:text-slate-100 text-lg">{fileName}</h4>
+                                        <p className="text-emerald-600 dark:text-emerald-400 text-sm font-medium">Successfully processed</p>
                                     </div>
-                                    <p className="text-slate-400 text-xs uppercase tracking-widest font-bold">Click to replace</p>
+                                    <p className="text-slate-400 dark:text-slate-500 text-xs uppercase tracking-widest font-bold">Click to replace</p>
                                 </>
                             ) : (
                                 <>
-                                    <div className="w-16 h-16 bg-white text-primary-600 rounded-2xl flex items-center justify-center shadow-sm">
+                                    <div className="w-16 h-16 bg-white dark:bg-slate-800 text-primary-600 dark:text-primary-400 rounded-2xl flex items-center justify-center shadow-sm">
                                         <FileUp size={32} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-800 text-lg">Click to upload your resume</h4>
-                                        <p className="text-slate-500 text-sm">Only PDF files are supported</p>
+                                        <h4 className="font-bold text-slate-800 dark:text-slate-100 text-lg">Click to upload your resume</h4>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm">Only PDF files are supported</p>
                                     </div>
                                 </>
                             )}
@@ -279,7 +279,7 @@ const InterviewSetupPage = () => {
                             <button 
                                 onClick={() => setStep(2)} 
                                 disabled={isUploading || isStarting} 
-                                className="flex-1 py-5 border-2 border-slate-100 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                                className="flex-1 py-5 border-2 border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
                             >
                                 <ChevronLeft size={20} /> Back
                             </button>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { 
     getInterview, 
@@ -50,21 +50,117 @@ const InterviewPage = () => {
     const location = useLocation();
 
     const [phase, setPhase] = useState('loading');
-    const [currentQuestionNum, setCurrentQuestionNum] = useState(0);
+    const [audioBase64, setAudioBase64] = useState('');
+    const [currentQuestionNum, setCurrentQuestionNum] = useState(1);
+    const [questionsList, setQuestionsList] = useState([]);
     const [totalQuestions, setTotalQuestions] = useState(0);
-    const [audioBase64, setAudioBase64] = useState(null);
-    const [feedbackReport, setFeedbackReport] = useState(null);
     const [textAnswer, setTextAnswer] = useState('');
-    const [activeTab, setActiveTab] = useState('voice'); // voice | text | code
+    const [activeTab, setActiveTab] = useState('voice');
+    const [feedbackReport, setFeedbackReport] = useState(null);
+
+    const audioRef = useRef(null);
+    const audioUrlRef = useRef(null);
+    const playedAudioKeyRef = useRef(null);
+
+    const stopAndCleanupAudio = () => {
+        if (audioRef.current) {
+            try {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+                audioRef.current.onended = null;
+                audioRef.current.onerror = null;
+            } catch (e) {
+                // Ignore audio pause errors
+            }
+            audioRef.current = null;
+        }
+        if (audioUrlRef.current) {
+            try {
+                URL.revokeObjectURL(audioUrlRef.current);
+            } catch (e) {
+                // Ignore revoke errors
+            }
+            audioUrlRef.current = null;
+        }
+    };
+
+    const playAudioStream = (base64Data, key, forceRestart = false) => {
+        if (!base64Data) return;
+
+        // 1. Replay current question audio: Reuse existing audio instance, reset time to 0
+        if (forceRestart) {
+            if (audioRef.current && playedAudioKeyRef.current === key) {
+                console.log('[AudioStream] Replaying current audio from time = 0');
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+                setPhase('speaking');
+                audioRef.current.play().catch(err => console.warn('[AudioStream] Replay play() blocked:', err));
+                return;
+            }
+        }
+
+        // 2. Prevent duplicate auto-plays on re-renders/tab changes for same question
+        if (!forceRestart && playedAudioKeyRef.current === key) {
+            return;
+        }
+
+        // 3. New question: Clean up previous audio instance and Object URL completely
+        stopAndCleanupAudio();
+
+        try {
+            console.log(`[AudioStream] Initializing new audio stream for key: ${key}`);
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'audio/mp3' });
+
+            const url = URL.createObjectURL(blob);
+            audioUrlRef.current = url;
+            playedAudioKeyRef.current = key;
+
+            const audio = new Audio(url);
+            audioRef.current = audio;
+
+            audio.onended = () => {
+                console.log('[AudioStream] Audio playback finished.');
+                setPhase('listening');
+            };
+
+            setPhase('speaking');
+            audio.play().catch(err => console.warn('[AudioStream] Auto-play blocked by browser:', err));
+        } catch (error) {
+            console.error('[AudioStream] Audio stream creation error:', error);
+            setPhase('listening');
+        }
+    };
+
+    // Auto-play audio when new question audio arrives
+    useEffect(() => {
+        if (audioBase64 && phase === 'speaking') {
+            const key = `${currentQuestionNum}_${audioBase64.substring(0, 30)}`;
+            playAudioStream(audioBase64, key, false);
+        }
+    }, [audioBase64, currentQuestionNum, phase]);
+
+    // Cleanup audio on component unmount
+    useEffect(() => {
+        return () => {
+            stopAndCleanupAudio();
+        };
+    }, []);
 
     useEffect(() => {
         const loadInitialData = async () => {
             try {
                 const data = await getInterview(id);
                 if (data.questions) {
+                    setQuestionsList(data.questions);
                     setTotalQuestions(data.questions.length);
                     const aiChats = data.messages ? data.messages.filter(m => m.role === 'ai').length : 0;
-                    setCurrentQuestionNum(Math.min(aiChats, data.questions.length));
+                    setCurrentQuestionNum(Math.max(1, Math.min(aiChats, data.questions.length)));
                 }
                 setPhase('speaking');
                 if (location.state?.audio) {
@@ -79,12 +175,13 @@ const InterviewPage = () => {
         if (id) loadInitialData();
     }, [id, location.state]);
 
-    const handleAudioEnded = () => setPhase('listening');
+    const currentQuestion = questionsList[currentQuestionNum - 1] || null;
 
     const processAnswerResult = (response) => {
         if (response.audio) setAudioBase64(response.audio);
         setCurrentQuestionNum(prev => prev + 1);
         if (response.isCompleted) {
+            stopAndCleanupAudio();
             setPhase('farewell');
         } else {
             setPhase('speaking');
@@ -94,13 +191,12 @@ const InterviewPage = () => {
     const handleVoiceSubmit = async (audioBlob) => {
         try {
             console.log('[InterviewPage] After recording: Audio blob captured successfully.', audioBlob);
+            stopAndCleanupAudio();
             setPhase('thinking');
 
-            // 1. Transcription step mapping AssemblyAI integration
             console.log('[InterviewPage] Starting transcription pipeline...');
             const transcribedData = await transcribeAudio(audioBlob);
             
-            // Extract text from wrapper if returned as object based on refined backend controller response
             const transcribedString = typeof transcribedData === 'string' ? transcribedData : transcribedData?.transcription;
             console.log(`[InterviewPage] After transcription: Received text "${transcribedString}"`);
 
@@ -111,7 +207,6 @@ const InterviewPage = () => {
                 return;
             }
 
-            // 2. Submit transcribed text to AI engine
             console.log('[InterviewPage] Before submitAnswer: Dispatching text to AI interviewer...');
             const response = await submitTextAnswer(id, transcribedString);
             console.log('[InterviewPage] After API response: AI evaluation received.');
@@ -127,6 +222,7 @@ const InterviewPage = () => {
     const handleTextSubmit = async () => {
         if (!textAnswer.trim()) return;
         try {
+            stopAndCleanupAudio();
             setPhase('thinking');
             const response = await submitTextAnswer(id, textAnswer);
             setTextAnswer('');
@@ -138,6 +234,7 @@ const InterviewPage = () => {
 
     const handleCodeSubmit = async (code, language) => {
         try {
+            stopAndCleanupAudio();
             setPhase('thinking');
             const response = await submitCode(id, code, language);
             processAnswerResult(response);
@@ -148,12 +245,19 @@ const InterviewPage = () => {
 
     const handleEndInterview = async () => {
         try {
+            stopAndCleanupAudio();
             const report = await endInterview(id);
             setFeedbackReport(report);
             setPhase('farewell');
         } catch (error) {
             console.error('Failed to end interview.');
         }
+    };
+
+    const handleManualReplayAudio = () => {
+        if (!audioBase64) return;
+        const key = `${currentQuestionNum}_${audioBase64.substring(0, 30)}`;
+        playAudioStream(audioBase64, key, true);
     };
 
     if (phase === 'loading') return (
@@ -165,41 +269,56 @@ const InterviewPage = () => {
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-8 h-[calc(100vh-80px)] flex flex-col gap-6">
+
             {/* Header / Tracker */}
-            <div className="flex bg-white p-4 rounded-2xl border border-slate-200 items-center justify-between shadow-sm">
+            <div className="flex bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 items-center justify-between shadow-sm">
                 <div className="flex items-center gap-4">
                     <StatusBadge phase={phase} />
                     {totalQuestions > 0 && (
                         <div className="hidden md:flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Progress</span>
+                            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Progress</span>
                             <div className="flex gap-1">
                                 {[...Array(totalQuestions)].map((_, i) => (
-                                    <div key={i} className={`w-6 h-1.5 rounded-full transition-all duration-500 ${i < currentQuestionNum ? 'bg-primary-500' : 'bg-slate-100'}`} />
+                                    <div key={i} className={`w-6 h-1.5 rounded-full transition-all duration-500 ${i < currentQuestionNum ? 'bg-primary-500' : 'bg-slate-100 dark:bg-slate-800'}`} />
                                 ))}
                             </div>
                         </div>
                     )}
                 </div>
-                <button 
-                    onClick={() => { if(window.confirm('Are you sure you want to exit?')) navigate('/') }}
-                    className="text-slate-400 hover:text-rose-500 p-2 rounded-lg hover:bg-rose-50 transition-all flex items-center gap-2 text-sm font-bold"
-                >
-                    <LogOut size={18} />
-                    <span className="hidden sm:inline">Exit Session</span>
-                </button>
+
+                <div className="flex items-center gap-3">
+                    {/* Manual Audio Replay Speaker Button */}
+                    <button 
+                        onClick={handleManualReplayAudio}
+                        disabled={!audioBase64}
+                        className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 disabled:opacity-40"
+                        title="Replay Current Question Audio"
+                    >
+                        <Volume2 size={16} className="text-primary-600 dark:text-primary-400" />
+                        <span className="hidden sm:inline">Replay Audio</span>
+                    </button>
+
+                    <button 
+                        onClick={() => { if(window.confirm('Are you sure you want to exit?')) navigate('/') }}
+                        className="text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all flex items-center gap-2 text-sm font-bold"
+                    >
+                        <LogOut size={18} />
+                        <span className="hidden sm:inline">Exit Session</span>
+                    </button>
+                </div>
             </div>
 
             {/* Main Area */}
             <div className="flex-1 overflow-hidden">
                 {phase === 'farewell' ? (
                     <div className="h-full flex items-center justify-center animate-in zoom-in-95 duration-500">
-                        <div className="max-w-xl w-full text-center space-y-8 bg-white p-12 rounded-3xl border border-slate-200 card-shadow">
-                            <div className="w-24 h-24 bg-primary-50 text-primary-600 rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-primary-500/10">
+                        <div className="max-w-xl w-full text-center space-y-8 bg-white dark:bg-slate-900 p-12 rounded-3xl border border-slate-200 dark:border-slate-800 card-shadow">
+                            <div className="w-24 h-24 bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-primary-500/10">
                                 <Trophy size={48} />
                             </div>
                             <div className="space-y-2">
-                                <h2 className="text-4xl font-extrabold text-slate-800">Excellent Work!</h2>
-                                <p className="text-slate-500 text-lg">The interview session has been successfully completed. Our AI is now ready to present your detailed assessment.</p>
+                                <h2 className="text-4xl font-extrabold text-slate-800 dark:text-slate-100">Excellent Work!</h2>
+                                <p className="text-slate-500 dark:text-slate-400 text-lg">The interview session has been successfully completed. Our AI is now ready to present your detailed assessment.</p>
                             </div>
                             
                             {!feedbackReport ? (
@@ -223,8 +342,8 @@ const InterviewPage = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-8 h-full">
                         {/* Left: AI Column */}
                         <div className="flex flex-col gap-6">
-                            <div className="flex-1 bg-white rounded-3xl border border-slate-200 p-8 flex flex-col items-center justify-center text-center relative card-shadow group overflow-hidden">
-                                <div className="absolute top-0 right-0 p-8 text-primary-50">
+                            <div className="flex-1 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center relative card-shadow group overflow-hidden">
+                                <div className="absolute top-0 right-0 p-8 text-primary-50 dark:text-primary-950/40">
                                     <Bot size={180} className="stroke-[0.5]" />
                                 </div>
                                 <div className="relative z-10 space-y-8 max-w-md">
@@ -232,7 +351,7 @@ const InterviewPage = () => {
                                         <Bot size={48} className="text-white" />
                                     </div>
                                     <div className="space-y-4">
-                                        <h3 className="text-2xl font-extrabold text-slate-800">Recruitment AI</h3>
+                                        <h3 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">Recruitment AI</h3>
                                         <div className={`min-h-[100px] flex items-center justify-center ${phase === 'speaking' ? 'animate-in fade-in duration-700' : ''}`}>
                                             {phase === 'speaking' ? (
                                                 <div className="flex gap-1.5 items-center">
@@ -241,15 +360,12 @@ const InterviewPage = () => {
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <p className="text-slate-500 text-lg leading-relaxed font-medium">Ready for your response</p>
+                                                <p className="text-slate-500 dark:text-slate-400 text-lg leading-relaxed font-medium">Ready for your response</p>
                                             )}
                                         </div>
                                     </div>
-                                    {phase === 'speaking' && audioBase64 && (
-                                        <AudioPlayer audioBase64={audioBase64} onEnded={handleAudioEnded} />
-                                    )}
                                 </div>
-                                <div className="absolute bottom-6 left-6 flex items-center gap-2 text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100 uppercase tracking-widest">
+                                <div className="absolute bottom-6 left-6 flex items-center gap-2 text-xs font-bold text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-slate-100 dark:border-slate-700 uppercase tracking-widest">
                                     <Volume2 size={12} />
                                     Spatial Audio Active
                                 </div>
@@ -258,9 +374,9 @@ const InterviewPage = () => {
 
                         {/* Right: Candidate Column */}
                         <div className="flex flex-col h-full overflow-hidden mt-6 lg:mt-0">
-                            <div className="bg-white rounded-3xl border border-slate-200 flex flex-col h-full shadow-sm">
+                            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 flex flex-col h-full shadow-sm">
                                 {/* Tab Switcher */}
-                                <div className="flex border-b border-slate-100 p-2">
+                                <div className="flex border-b border-slate-100 dark:border-slate-800 p-2">
                                     {[
                                         { id: 'voice', label: 'Audio Response', icon: Mic },
                                         { id: 'text', label: 'Text Input', icon: MessageSquare },
@@ -272,7 +388,7 @@ const InterviewPage = () => {
                                             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${
                                                 activeTab === tab.id 
                                                 ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' 
-                                                : 'text-slate-500 hover:bg-slate-50 hover:text-primary-600'
+                                                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-primary-600 dark:hover:text-primary-400'
                                             }`}
                                         >
                                             <tab.icon size={18} />
@@ -288,11 +404,11 @@ const InterviewPage = () => {
                                             <VoiceRecorder onSubmit={handleVoiceSubmit} disabled={phase !== 'listening'} />
                                             {phase === 'listening' ? (
                                                 <div className="text-center space-y-2">
-                                                    <h4 className="text-lg font-bold text-slate-800">Recording Active</h4>
-                                                    <p className="text-slate-500 text-sm">Please provide your answer clearly.</p>
+                                                    <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100">Recording Active</h4>
+                                                    <p className="text-slate-500 dark:text-slate-400 text-sm">Please provide your answer clearly.</p>
                                                 </div>
                                             ) : (
-                                                <p className="text-slate-400 font-medium text-center max-w-xs">{phase === 'thinking' ? 'AI is processing...' : 'Interviewer is speaking...'}</p>
+                                                <p className="text-slate-400 dark:text-slate-500 font-medium text-center max-w-xs">{phase === 'thinking' ? 'AI is processing...' : 'Interviewer is speaking...'}</p>
                                             )}
                                         </div>
                                     )}
@@ -304,7 +420,7 @@ const InterviewPage = () => {
                                                     value={textAnswer}
                                                     onChange={(e) => setTextAnswer(e.target.value)}
                                                     placeholder="Focus on specific examples from your experience..."
-                                                    className="w-full h-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-6 outline-none focus:border-primary-500 transition-all font-medium text-slate-800 resize-none"
+                                                    className="w-full h-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl p-6 outline-none focus:border-primary-500 transition-all font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none"
                                                     disabled={phase !== 'listening'}
                                                 />
                                             </div>
@@ -323,9 +439,9 @@ const InterviewPage = () => {
                                             <div className="flex-1 min-h-[300px]">
                                                 <CodeEditor onSubmit={handleCodeSubmit} />
                                             </div>
-                                            <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
+                                            <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700 flex items-start gap-3">
                                                 <Info size={18} className="text-primary-500 shrink-0 mt-0.5" />
-                                                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                                                     Use this environment for technical solutions. The AI will evaluate your syntax, logic, and optimization strategies.
                                                 </p>
                                             </div>
@@ -340,10 +456,10 @@ const InterviewPage = () => {
             
             {/* Thinking Overlay */}
             {phase === 'thinking' && (
-                <div className="absolute inset-0 z-50 bg-white/40 backdrop-blur-[2px] flex items-center justify-center">
-                    <div className="bg-white px-8 py-5 rounded-2xl shadow-2xl border border-slate-200 flex items-center gap-4 animate-in zoom-in-95 duration-300">
-                        <Loader2 size={24} className="text-primary-600 animate-spin" />
-                        <span className="font-extrabold text-slate-800 tracking-tight">AI Evaluation in Progress...</span>
+                <div className="absolute inset-0 z-50 bg-white/40 dark:bg-slate-950/60 backdrop-blur-[2px] flex items-center justify-center">
+                    <div className="bg-white dark:bg-slate-900 px-8 py-5 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-4 animate-in zoom-in-95 duration-300">
+                        <Loader2 size={24} className="text-primary-600 dark:text-primary-400 animate-spin" />
+                        <span className="font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">AI Evaluation in Progress...</span>
                     </div>
                 </div>
             )}

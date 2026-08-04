@@ -92,20 +92,20 @@ const VoiceRecorder = ({ onSubmit, disabled }) => {
                 <button 
                     onClick={startRecording}
                     disabled={disabled}
-                    className="w-full flex flex-col items-center gap-6 p-10 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl hover:border-primary-400 hover:bg-primary-50 group transition-all disabled:opacity-50 disabled:hover:bg-slate-50 disabled:hover:border-slate-200"
+                    className="w-full flex flex-col items-center gap-6 p-10 bg-slate-50 dark:bg-slate-800/80 border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950/40 group transition-all disabled:opacity-50 disabled:hover:bg-slate-50 dark:disabled:hover:bg-slate-800 disabled:hover:border-slate-200 dark:disabled:hover:border-slate-700"
                 >
-                    <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform text-slate-400 group-hover:text-primary-600">
+                    <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform text-slate-400 dark:text-slate-500 group-hover:text-primary-600 dark:group-hover:text-primary-400">
                         <Mic size={36} />
                     </div>
                     <div className="space-y-1">
-                        <h4 className="font-bold text-slate-700">Record Voice Answer</h4>
-                        <p className="text-xs text-slate-400 font-medium uppercase tracking-widest">Click to initialize mic</p>
+                        <h4 className="font-bold text-slate-700 dark:text-slate-200">Record Voice Answer</h4>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 font-medium uppercase tracking-widest">Click to initialize mic</p>
                     </div>
                 </button>
             )}
             
             {status === 'recording' && (
-                <div className="w-full flex flex-col items-center gap-8 p-10 bg-primary-50/50 border-2 border-primary-100 rounded-3xl">
+                <div className="w-full flex flex-col items-center gap-8 p-10 bg-primary-50/50 dark:bg-primary-950/40 border-2 border-primary-100 dark:border-primary-900/60 rounded-3xl">
                     <div className="relative">
                         <div className="absolute inset-0 bg-primary-500 rounded-full animate-ping opacity-20"></div>
                         <div className="w-20 h-20 bg-primary-600 rounded-full flex items-center justify-center shadow-xl shadow-primary-500/40 relative z-10 transition-transform">
@@ -114,12 +114,12 @@ const VoiceRecorder = ({ onSubmit, disabled }) => {
                     </div>
                     <div className="space-y-4 text-center">
                         <div className="space-y-1">
-                            <h4 className="font-bold text-primary-900">Recording Live...</h4>
-                            <p className="text-xs text-primary-600 font-bold uppercase tracking-widest animate-pulse">Stay clear of background noise</p>
+                            <h4 className="font-bold text-primary-900 dark:text-primary-100">Recording Live...</h4>
+                            <p className="text-xs text-primary-600 dark:text-primary-400 font-bold uppercase tracking-widest animate-pulse">Stay clear of background noise</p>
                         </div>
                         <button 
                             onClick={stopRecording}
-                            className="flex items-center gap-2 bg-white text-rose-600 px-6 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-rose-50 transition-colors"
+                            className="flex items-center gap-2 bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 px-6 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-rose-50 dark:hover:bg-slate-800 transition-colors"
                         >
                             <Square size={16} fill="currentColor" /> Stop Session
                         </button>
@@ -128,8 +128,8 @@ const VoiceRecorder = ({ onSubmit, disabled }) => {
             )}
 
             {status === 'preview' && (
-                <div className="w-full flex flex-col gap-6 p-8 bg-white border border-slate-200 rounded-3xl shadow-xl animate-in zoom-in-95 duration-300">
-                    <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl">
+                <div className="w-full flex flex-col gap-6 p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl animate-in zoom-in-95 duration-300">
+                    <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl">
                         <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center text-white">
                             <Volume2 size={20} />
                         </div>
@@ -139,13 +139,13 @@ const VoiceRecorder = ({ onSubmit, disabled }) => {
                     <div className="flex gap-3">
                         <button 
                             onClick={resetState}
-                            className="flex-1 flex items-center justify-center gap-2 py-3 border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all"
+                            className="flex-1 flex items-center justify-center gap-2 py-3 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
                         >
                             <RotateCcw size={16} /> Retake
                         </button>
                         <button 
                             onClick={submitAnswer}
-                            className="flex-[2] flex items-center justify-center gap-2 py-3 bg-primary-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-primary-200 hover:bg-primary-700 transition-all"
+                            className="flex-[2] flex items-center justify-center gap-2 py-3 bg-primary-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-primary-200 dark:shadow-none hover:bg-primary-700 transition-all"
                         >
                              Submit <Send size={16} />
                         </button>

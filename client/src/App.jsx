@@ -4,88 +4,142 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 // Services & Utils
 import authService from './services/authService';
 
-// Import newly scaffolded view pages
+// View pages
 import HomePage from './pages/HomePage';
 import AuthPage from './pages/AuthPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 import InterviewSetupPage from './pages/InterviewSetupPage';
 import InterviewPage from './pages/InterviewPage';
 import FeedbackPage from './pages/FeedbackPage';
 import HistoryPage from './pages/HistoryPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminUsersPage from './pages/AdminUsersPage';
+import AdminInterviewsPage from './pages/AdminInterviewsPage';
+import AdminFeedbackPage from './pages/AdminFeedbackPage';
 
 // Layout & Protection Components
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 
 const App = () => {
     return (
         <Router>
-            <Navbar />
-            <Routes>
-                {/* Public Authentication Route */}
-                <Route
-                    path="/auth"
-                    element={
-                        authService.isAuthenticated() ? (
-                            <Navigate to="/" replace />
-                        ) : (
-                            <AuthPage />
-                        )
-                    }
-                />
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+                <Navbar />
+                <Routes>
+                    {/* Public Authentication Route */}
+                    <Route
+                        path="/auth"
+                        element={
+                            authService.isAuthenticated() ? (
+                                <Navigate to="/" replace />
+                            ) : (
+                                <AuthPage />
+                            )
+                        }
+                    />
 
-                {/* Protected Home component explicitly rendered in Route bound wrapper context */}
-                <Route
-                    path="/"
-                    element={
-                        <ProtectedRoute>
-                            <HomePage />
-                        </ProtectedRoute>
-                    }
-                />
+                    {/* Email Verification Link Route */}
+                    <Route
+                        path="/verify-email/:token"
+                        element={<VerifyEmailPage />}
+                    />
 
-                {/* Wizard UI Flow rendered directly nested within safety context  */}
-                <Route
-                    path="/setup"
-                    element={
-                        <ProtectedRoute>
-                            <InterviewSetupPage />
-                        </ProtectedRoute>
-                    }
-                />
+                    {/* Protected Home Route */}
+                    <Route
+                        path="/"
+                        element={
+                            <ProtectedRoute>
+                                <HomePage />
+                            </ProtectedRoute>
+                        }
+                    />
 
-                {/* Active Session Interview Context Mapping */}
-                <Route
-                    path="/interview/:id"
-                    element={
-                        <ProtectedRoute>
-                            <InterviewPage />
-                        </ProtectedRoute>
-                    }
-                />
-                
-                {/* Embedded Review & Grading Evaluation Environment  */}
-                <Route
-                    path="/feedback/:id"
-                    element={
-                        <ProtectedRoute>
-                            <FeedbackPage />
-                        </ProtectedRoute>
-                    }
-                />
+                    {/* Interview Setup Route */}
+                    <Route
+                        path="/setup"
+                        element={
+                            <ProtectedRoute>
+                                <InterviewSetupPage />
+                            </ProtectedRoute>
+                        }
+                    />
 
-                {/* Secure Vault Activity Layout Map  */}
-                <Route
-                    path="/history"
-                    element={
-                        <ProtectedRoute>
-                            <HistoryPage />
-                        </ProtectedRoute>
-                    }
-                />
-                
-                {/* Catch-all global mapping block */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+                    {/* Active Interview Session Route */}
+                    <Route
+                        path="/interview/:id"
+                        element={
+                            <ProtectedRoute>
+                                <InterviewPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    
+                    {/* Feedback Route */}
+                    <Route
+                        path="/feedback/:id"
+                        element={
+                            <ProtectedRoute>
+                                <FeedbackPage />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* Interview History Route */}
+                    <Route
+                        path="/history"
+                        element={
+                            <ProtectedRoute>
+                                <HistoryPage />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* Phase 1: Secure Admin Analytics Dashboard Route */}
+                    <Route
+                        path="/admin"
+                        element={
+                            <AdminRoute>
+                                <AdminDashboardPage />
+                            </AdminRoute>
+                        }
+                    />
+
+                    {/* Phase 2: Secure Admin User Management Route */}
+                    <Route
+                        path="/admin/users"
+                        element={
+                            <AdminRoute>
+                                <AdminUsersPage />
+                            </AdminRoute>
+                        }
+                    />
+
+                    {/* Phase 3: Secure Admin Interview Management Route */}
+                    <Route
+                        path="/admin/interviews"
+                        element={
+                            <AdminRoute>
+                                <AdminInterviewsPage />
+                            </AdminRoute>
+                        }
+                    />
+
+                    {/* Phase 4: Secure Admin Feedback Center Route */}
+                    <Route
+                        path="/admin/feedback"
+                        element={
+                            <AdminRoute>
+                                <AdminFeedbackPage />
+                            </AdminRoute>
+                        }
+                    />
+                    
+                    {/* Catch-all global route */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </div>
         </Router>
     );
 };

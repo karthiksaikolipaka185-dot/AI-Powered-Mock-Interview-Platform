@@ -1,15 +1,15 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
 
-// Import unified routing index logically built in prior steps
+const { connectDB } = require('./src/config/db.config');
+const { validateEnvironmentVariables, checkServicesStatus } = require('./src/services/startup.service');
 const rootRoutes = require('./src/routes/index');
+const { notFoundHandler, errorHandler } = require('./src/middlewares/error.middleware');
 
 const app = express();
 
-// Enable CORS for production (allowing all origins temporarily)
-// TODO: Replace "*" with actual Vercel domain after deployment (e.g., origin: "https://your-frontend.vercel.app")
+// Enable CORS for production & local development
 const allowedOrigins = [
   process.env.CLIENT_URL,
   'https://ai-powered-mock-interview-platform-ten.vercel.app',
@@ -19,7 +19,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
     const isAllowed = allowedOrigins.includes(origin) || 
@@ -34,15 +33,9 @@ app.use(cors({
   },
   credentials: true
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Database connection dynamically leveraging environmental overrides
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB successfully connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
-
-const { notFoundHandler, errorHandler } = require('./src/middlewares/error.middleware');
 
 // Register base routes securely mapping /api boundaries implicitly
 app.use('/api', rootRoutes);
@@ -51,8 +44,36 @@ app.use('/api', rootRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Port mapping executions
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server actively iterating native commands on port ${PORT}`);
-});
+
+/**
+ * Perform startup sequence:
+ * 1. Validate environment variables
+ * 2. Connect to MongoDB (Do NOT continue if MongoDB connection fails)
+ * 3. Audit service statuses and print startup logs
+ * 4. Start HTTP Server
+ */
+const startServer = async () => {
+    try {
+        // Step 1 & 2: Environment verification
+        validateEnvironmentVariables();
+
+        // Step 1: Connect to MongoDB
+        await connectDB();
+
+        // Step 8: Check and log service status
+        checkServicesStatus();
+
+        app.listen(PORT, () => {
+            console.log(`Server actively running on port ${PORT}`);
+        });
+    } catch (error) {
+        console.error('\n====================================================');
+        console.error('FATAL STARTUP ERROR: Server failed to initialize!');
+        console.error('Error Details:', error.message);
+        console.error('====================================================\n');
+        process.exit(1);
+    }
+};
+
+startServer();

@@ -18,10 +18,10 @@ const resumeSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Automatically add createdAt and updatedAt
+    timestamps: true,
   }
 );
 
-const Resume = mongoose.model('Resume', resumeSchema);
+const Resume = mongoose.models.Resume || mongoose.model('Resume', resumeSchema);
 
 module.exports = Resume;

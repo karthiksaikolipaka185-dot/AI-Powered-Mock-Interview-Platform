@@ -1,0 +1,18 @@
+const express = require('express');
+const { getInterviewsList, getInterviewDetail } = require('../controllers/interviewManagement.controller');
+const authenticate = require('../middlewares/authenticate.middleware');
+const adminMiddleware = require('../middlewares/admin.middleware');
+
+const router = express.Router();
+
+// Protect all admin interview endpoints with JWT & admin verification
+router.use(authenticate);
+router.use(adminMiddleware);
+
+// GET /api/admin/interviews - Paginated interviews list
+router.get('/', getInterviewsList);
+
+// GET /api/admin/interviews/:id - Detailed session timeline & code submissions
+router.get('/:id', getInterviewDetail);
+
+module.exports = router;

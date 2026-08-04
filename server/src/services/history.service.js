@@ -1,14 +1,13 @@
 const Interview = require('../models/Interview.model');
 
 const getUserHistory = async (userId, page, limit) => {
-    const parsedPage = parseInt(page, 10);
-    const parsedLimit = parseInt(limit, 10);
+    const parsedPage = Math.max(1, parseInt(page, 10) || 1);
+    const parsedLimit = Math.max(1, parseInt(limit, 10) || 10);
     
-    // Calculate skip limit natively natively 
     const skip = (parsedPage - 1) * parsedLimit;
 
-    // Fetch interviews filtering seamlessly parsing mapped limits
-    // Optimization query mapping .select() limits fetching large objects safely
+    console.log(`[getUserHistory] Querying history for userId: ${userId}, page: ${parsedPage}, limit: ${parsedLimit}`);
+
     const dataQuery = Interview.find({ userId })
         .select('_id role status createdAt updatedAt feedback')
         .sort({ createdAt: -1 })
@@ -17,13 +16,14 @@ const getUserHistory = async (userId, page, limit) => {
         
     const countQuery = Interview.countDocuments({ userId });
 
-    // Leverage Promise.all extracting outputs rapidly avoiding blocking sequence limits
     const [entries, totalEntries] = await Promise.all([dataQuery, countQuery]);
+
+    console.log(`[getUserHistory] Returning ${entries.length} entries out of total ${totalEntries} for userId: ${userId}`);
 
     return {
         entries,
         totalEntries,
-        totalPages: Math.ceil(totalEntries / parsedLimit),
+        totalPages: Math.max(1, Math.ceil(totalEntries / parsedLimit)),
         currentPage: parsedPage
     };
 };
