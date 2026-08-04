@@ -9,8 +9,9 @@ const router = express.Router();
 router.use(authenticate);
 router.use(adminMiddleware);
 
-// GET /api/admin/users - Paginated user list with search & filters
+// GET /api/admin/users - Paginated user list with search & filters (support trailing slash and empty path)
 router.get('/', getUsersList);
+router.get('', getUsersList);
 
 // GET /api/admin/users/:id - Detailed user profile & telemetry
 router.get('/:id', getUserDetail);

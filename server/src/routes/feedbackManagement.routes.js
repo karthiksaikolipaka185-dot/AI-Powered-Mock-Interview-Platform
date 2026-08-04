@@ -9,8 +9,9 @@ const router = express.Router();
 router.use(authenticate);
 router.use(adminMiddleware);
 
-// GET /api/admin/feedback - Paginated feedback list
+// GET /api/admin/feedback - Paginated feedback list (supports both trailing slash and empty path)
 router.get('/', getFeedbackList);
+router.get('', getFeedbackList);
 
 // GET /api/admin/feedback/:id - Detailed feedback entry with sentiment
 router.get('/:id', getFeedbackDetail);

@@ -21,7 +21,10 @@ router.use('/resume', resumeRoutes);
 router.use('/interview', interviewRoutes);
 router.use('/history', historyRoutes);
 router.use('/feedback', feedbackRoutes);
+
+// Admin & Dashboard Feature Routes
 router.use('/dashboard', dashboardRoutes);
+router.use('/admin/dashboard', dashboardRoutes);
 router.use('/admin/users', userManagementRoutes);
 router.use('/admin/interviews', interviewManagementRoutes);
 router.use('/admin/feedback', feedbackManagementRoutes);

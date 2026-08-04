@@ -19,7 +19,7 @@ api.interceptors.request.use((config) => {
  */
 export const getUsers = async (params = {}) => {
     const { page = 1, limit = 10, search = '', sortBy = 'createdAt', sortOrder = 'desc', filterStatus = 'all' } = params;
-    const response = await api.get('/', {
+    const response = await api.get('', {
         params: { page, limit, search, sortBy, sortOrder, filterStatus }
     });
     return response.data;

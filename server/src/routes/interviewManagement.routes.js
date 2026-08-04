@@ -9,8 +9,9 @@ const router = express.Router();
 router.use(authenticate);
 router.use(adminMiddleware);
 
-// GET /api/admin/interviews - Paginated interviews list
+// GET /api/admin/interviews - Paginated interviews list (supports both trailing slash and empty path)
 router.get('/', getInterviewsList);
+router.get('', getInterviewsList);
 
 // GET /api/admin/interviews/:id - Detailed session timeline & code submissions
 router.get('/:id', getInterviewDetail);

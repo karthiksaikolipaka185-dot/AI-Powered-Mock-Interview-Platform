@@ -19,7 +19,7 @@ api.interceptors.request.use((config) => {
  */
 export const getFeedbackList = async (params = {}) => {
     const { page = 1, limit = 10, search = '', rating = 'all', reviewStatus = 'all', sortBy = 'newest' } = params;
-    const response = await api.get('/', {
+    const response = await api.get('', {
         params: { page, limit, search, rating, reviewStatus, sortBy }
     });
     return response.data;

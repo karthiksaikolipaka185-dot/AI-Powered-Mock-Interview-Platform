@@ -9,7 +9,9 @@ const router = express.Router();
 router.use(authenticate);
 router.use(adminMiddleware);
 
-// GET /api/dashboard/admin
+// GET /api/dashboard/admin & /api/admin/dashboard
 router.get('/admin', getAdminDashboard);
+router.get('/', getAdminDashboard);
+router.get('', getAdminDashboard);
 
 module.exports = router;
