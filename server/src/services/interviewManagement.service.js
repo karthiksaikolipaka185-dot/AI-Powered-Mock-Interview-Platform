@@ -181,7 +181,20 @@ const getInterviewDetailById = async (interviewId) => {
     };
 };
 
+const deleteInterviewById = async (interviewId) => {
+    const interview = await Interview.findById(interviewId);
+    if (!interview) {
+        const error = new Error('Interview record not found');
+        error.statusCode = 404;
+        throw error;
+    }
+    
+    await Interview.findByIdAndDelete(interviewId);
+    return { success: true };
+};
+
 module.exports = {
     getPaginatedInterviews,
-    getInterviewDetailById
+    getInterviewDetailById,
+    deleteInterviewById
 };

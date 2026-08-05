@@ -56,7 +56,31 @@ const getInterviewDetail = async (req, res, next) => {
     }
 };
 
+/**
+ * Controller to handle deleting an interview session.
+ * DELETE /api/admin/interviews/:id
+ */
+const deleteInterview = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        await interviewManagementService.deleteInterviewById(id);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Interview session deleted successfully.'
+        });
+    } catch (error) {
+        console.error('[InterviewManagementController] Error deleting interview:', error.message);
+        return res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || 'Failed to delete interview session.'
+        });
+    }
+};
+
 module.exports = {
     getInterviewsList,
-    getInterviewDetail
+    getInterviewDetail,
+    deleteInterview
 };

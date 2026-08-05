@@ -1,5 +1,5 @@
 const express = require('express');
-const { getInterviewsList, getInterviewDetail } = require('../controllers/interviewManagement.controller');
+const { getInterviewsList, getInterviewDetail, deleteInterview } = require('../controllers/interviewManagement.controller');
 const authenticate = require('../middlewares/authenticate.middleware');
 const adminMiddleware = require('../middlewares/admin.middleware');
 
@@ -15,5 +15,8 @@ router.get('', getInterviewsList);
 
 // GET /api/admin/interviews/:id - Detailed session timeline & code submissions
 router.get('/:id', getInterviewDetail);
+
+// DELETE /api/admin/interviews/:id - Delete interview session
+router.delete('/:id', deleteInterview);
 
 module.exports = router;

@@ -1,5 +1,5 @@
 const express = require('express');
-const { getUsersList, getUserDetail } = require('../controllers/userManagement.controller');
+const { getUsersList, getUserDetail, updateUserStatus, deleteUser } = require('../controllers/userManagement.controller');
 const authenticate = require('../middlewares/authenticate.middleware');
 const adminMiddleware = require('../middlewares/admin.middleware');
 
@@ -15,5 +15,11 @@ router.get('', getUsersList);
 
 // GET /api/admin/users/:id - Detailed user profile & telemetry
 router.get('/:id', getUserDetail);
+
+// PATCH /api/admin/users/:id - Suspend/activate/update user status
+router.patch('/:id', updateUserStatus);
+
+// DELETE /api/admin/users/:id - Delete user account
+router.delete('/:id', deleteUser);
 
 module.exports = router;

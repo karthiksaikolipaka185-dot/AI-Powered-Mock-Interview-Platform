@@ -5,9 +5,7 @@ const historyRoutes = require('./history.routes');
 const authRoutes = require('./auth.routes');
 const feedbackRoutes = require('./feedback.routes');
 const dashboardRoutes = require('./dashboard.routes');
-const userManagementRoutes = require('./userManagement.routes');
-const interviewManagementRoutes = require('./interviewManagement.routes');
-const feedbackManagementRoutes = require('./feedbackManagement.routes');
+const adminRoutes = require('./admin.routes');
 const { getHealthStatus } = require('../controllers/health.controller');
 
 const router = express.Router();
@@ -24,9 +22,6 @@ router.use('/feedback', feedbackRoutes);
 
 // Admin & Dashboard Feature Routes
 router.use('/dashboard', dashboardRoutes);
-router.use('/admin/dashboard', dashboardRoutes);
-router.use('/admin/users', userManagementRoutes);
-router.use('/admin/interviews', interviewManagementRoutes);
-router.use('/admin/feedback', feedbackManagementRoutes);
+router.use('/admin', adminRoutes);
 
 module.exports = router;

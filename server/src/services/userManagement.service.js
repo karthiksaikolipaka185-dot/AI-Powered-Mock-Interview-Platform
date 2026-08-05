@@ -25,7 +25,7 @@ const getPaginatedUsers = async ({ page = 1, limit = 10, search = '', sortBy = '
     // Fetch matching users
     const [rawUsers, totalUsersCount] = await Promise.all([
         User.find(searchQuery)
-            .select('name email picture createdAt lastLogin')
+            .select('name email picture createdAt lastLogin isSuspended')
             .sort(sortOptions),
         User.countDocuments(searchQuery)
     ]);
@@ -61,7 +61,9 @@ const getPaginatedUsers = async ({ page = 1, limit = 10, search = '', sortBy = '
 
         // Status computation
         let status = 'Active';
-        if (interviewCount === 0) {
+        if (user.isSuspended) {
+            status = 'Inactive';
+        } else if (interviewCount === 0) {
             status = 'Never Started Interview';
         } else if (user.lastLogin && new Date(user.lastLogin) < thirtyDaysAgo) {
             status = 'Inactive';
@@ -183,7 +185,9 @@ const getUserDetailsById = async (userId) => {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     let status = 'Active';
-    if (totalInterviews === 0) {
+    if (user.isSuspended) {
+        status = 'Inactive';
+    } else if (totalInterviews === 0) {
         status = 'Never Started Interview';
     } else if (user.lastLogin && new Date(user.lastLogin) < thirtyDaysAgo) {
         status = 'Inactive';
@@ -235,7 +239,45 @@ const getUserDetailsById = async (userId) => {
     };
 };
 
+const updateUserDetails = async (userId, updateData) => {
+    const user = await User.findById(userId);
+    if (!user) {
+        const error = new Error('User not found');
+        error.statusCode = 404;
+        throw error;
+    }
+    
+    if (updateData.hasOwnProperty('isSuspended')) {
+        user.isSuspended = updateData.isSuspended;
+    }
+    if (updateData.name) user.name = updateData.name;
+    if (updateData.email) user.email = updateData.email;
+    
+    await user.save();
+    return user;
+};
+
+const deleteUserById = async (userId) => {
+    const user = await User.findById(userId);
+    if (!user) {
+        const error = new Error('User not found');
+        error.statusCode = 404;
+        throw error;
+    }
+    
+    await Promise.all([
+        User.findByIdAndDelete(userId),
+        Interview.deleteMany({ userId }),
+        Resume.deleteMany({ userId }),
+        Feedback.deleteMany({ userId })
+    ]);
+    
+    return { success: true };
+};
+
 module.exports = {
     getPaginatedUsers,
-    getUserDetailsById
+    getUserDetailsById,
+    updateUserDetails,
+    deleteUserById
 };

@@ -56,7 +56,57 @@ const getUserDetail = async (req, res, next) => {
     }
 };
 
+/**
+ * Controller to handle updating user account details/status.
+ * PATCH /api/admin/users/:id
+ */
+const updateUserStatus = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const updateData = req.body;
+
+        const updatedUser = await userManagementService.updateUserDetails(id, updateData);
+
+        return res.status(200).json({
+            success: true,
+            data: updatedUser,
+            message: 'User status updated successfully.'
+        });
+    } catch (error) {
+        console.error('[UserManagementController] Error updating user status:', error.message);
+        return res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || 'Failed to update user status.'
+        });
+    }
+};
+
+/**
+ * Controller to handle deleting a user account.
+ * DELETE /api/admin/users/:id
+ */
+const deleteUser = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        await userManagementService.deleteUserById(id);
+
+        return res.status(200).json({
+            success: true,
+            message: 'User deleted successfully.'
+        });
+    } catch (error) {
+        console.error('[UserManagementController] Error deleting user:', error.message);
+        return res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || 'Failed to delete user.'
+        });
+    }
+};
+
 module.exports = {
     getUsersList,
-    getUserDetail
+    getUserDetail,
+    updateUserStatus,
+    deleteUser
 };

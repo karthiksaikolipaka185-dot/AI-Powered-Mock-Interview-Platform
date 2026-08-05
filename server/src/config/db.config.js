@@ -4,11 +4,11 @@ const dns = require('dns');
 /**
  * Configure DNS servers for Node.js to resolve SRV records on Windows networks reliably
  */
-try {
-    dns.setServers(['8.8.8.8', '1.1.1.1']);
-} catch (err) {
-    console.warn('[DB Config] DNS setServers warning:', err.message);
-}
+// try {
+//     dns.setServers(['8.8.8.8', '1.1.1.1']);
+// } catch (err) {
+//     console.warn('[DB Config] DNS setServers warning:', err.message);
+// }
 
 /**
  * Connect to MongoDB instance safely and return connection state
