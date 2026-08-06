@@ -106,21 +106,32 @@ const AuthPage = () => {
     };
 
     const handleGoogleCredentialResponse = async (response) => {
+        console.log('[Google Auth] handleGoogleCredentialResponse triggered.');
+        if (!response || !response.credential) {
+            console.error('[Google Auth] Missing credential in Google response.');
+            setError('Google login failed: Missing credentials from Google.');
+            return;
+        }
+
         setLoading(true);
         setError('');
         setSuccess('');
 
         try {
             const credential = response.credential;
+            console.log('[Google Auth] Sending ID Token to backend...');
             const res = await authService.googleLogin(credential);
+            console.log('[Google Auth] Backend response:', res);
             if (res.success) {
                 setSuccess('Google login successful!');
                 setTimeout(() => {
                     navigate('/');
                 }, 1000);
+            } else {
+                setError(res.message || 'Google authentication failed.');
             }
         } catch (err) {
-            console.error('Google login error:', err);
+            console.error('[Google Auth] Google login API error:', err);
             setError(err.response?.data?.message || 'Google login failed. Please try again.');
         } finally {
             setLoading(false);
@@ -128,34 +139,64 @@ const AuthPage = () => {
     };
 
     useEffect(() => {
+        console.log('[Google Auth] useEffect triggered. isLogin =', isLogin);
         const initGoogleSignIn = () => {
             if (window.google) {
                 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '926554878988-iul14fcuh97hbkpqn2222753b0ib84vm.apps.googleusercontent.com';
-                window.google.accounts.id.initialize({
-                    client_id: clientId,
-                    callback: handleGoogleCredentialResponse
-                });
+                console.log('[Google Auth] GSI loaded. Client ID:', clientId);
+                
+                if (!window.googleSignInInitialized) {
+                    console.log('[Google Auth] Calling google.accounts.id.initialize...');
+                    window.google.accounts.id.initialize({
+                        client_id: clientId,
+                        callback: handleGoogleCredentialResponse
+                    });
+                    window.googleSignInInitialized = true;
+                }
 
                 const container = document.getElementById('google-signin-btn-container');
                 if (container) {
+                    console.log('[Google Auth] Rendering official Google button inside container...');
+                    // Clear previous iframe components to prevent duplicates
+                    container.innerHTML = '';
+                    
                     window.google.accounts.id.renderButton(container, {
                         theme: 'outline',
                         size: 'large',
-                        width: container.offsetWidth || 382
+                        width: 382 // Fixed width for stability
                     });
+                } else {
+                    console.warn('[Google Auth] google-signin-btn-container element not found in DOM.');
                 }
+            } else {
+                console.warn('[Google Auth] window.google is not available during init.');
             }
         };
 
         if (window.google) {
             initGoogleSignIn();
         } else {
-            const script = document.createElement('script');
-            script.src = 'https://accounts.google.com/gsi/client';
-            script.async = true;
-            script.defer = true;
-            script.onload = initGoogleSignIn;
-            document.head.appendChild(script);
+            let script = document.getElementById('google-gsi-client-script');
+            if (!script) {
+                console.log('[Google Auth] Creating script tag for GSI client...');
+                script = document.createElement('script');
+                script.id = 'google-gsi-client-script';
+                script.src = 'https://accounts.google.com/gsi/client';
+                script.async = true;
+                script.defer = true;
+                script.onload = () => {
+                    console.log('[Google Auth] GSI client script loaded successfully.');
+                    initGoogleSignIn();
+                };
+                document.head.appendChild(script);
+            } else {
+                console.log('[Google Auth] GSI script tag already exists.');
+                // Re-bind onload to trigger rendering for the new mount
+                script.onload = () => {
+                    console.log('[Google Auth] GSI client script onload triggered (existing script).');
+                    initGoogleSignIn();
+                };
+            }
         }
     }, [isLogin]);
 
@@ -306,6 +347,7 @@ const AuthPage = () => {
                         <div className="relative w-full">
                             <button 
                                 type="button"
+                                onClick={() => console.log('[Google Auth] Click event reached custom button (overlay click might have failed).')}
                                 className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3.5 font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/80 active:scale-[0.98] transition-all flex items-center justify-center gap-3 card-shadow-sm"
                             >
                                 <GoogleIcon />
@@ -313,8 +355,9 @@ const AuthPage = () => {
                             </button>
                             <div 
                                 id="google-signin-btn-container"
-                                className="absolute inset-0 w-full h-full opacity-0 overflow-hidden cursor-pointer"
-                                style={{ zIndex: 10 }}
+                                onClick={() => console.log('[Google Auth] Overlay container clicked.')}
+                                className="absolute inset-0 w-full h-full opacity-0 overflow-hidden"
+                                style={{ zIndex: 99, cursor: 'pointer' }}
                             ></div>
                         </div>
                     </div>
