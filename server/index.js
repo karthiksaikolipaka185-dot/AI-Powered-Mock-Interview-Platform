@@ -4,7 +4,6 @@ const cors = require('cors');
 
 const { connectDB } = require('./src/config/db.config');
 const { validateEnvironmentVariables, checkServicesStatus } = require('./src/services/startup.service');
-const { verifyTransporter } = require('./src/services/email.service');
 const rootRoutes = require('./src/routes/index');
 const { notFoundHandler, errorHandler } = require('./src/middlewares/error.middleware');
 
@@ -73,9 +72,6 @@ const startServer = async () => {
 
         // Step 8: Check and log service status
         checkServicesStatus();
-
-        // Verify email transporter connection on startup
-        await verifyTransporter();
 
         app.listen(PORT, () => {
             console.log(`Server actively running on port ${PORT}`);

@@ -8,10 +8,7 @@ const getHealthStatus = async (req, res) => {
     const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY);
     const hasAssemblyKey = Boolean(process.env.ASSEMBLYAI_API_KEY);
     const hasMurfKey = Boolean(process.env.MURF_API_KEY);
-    const hasEmailConfig = Boolean(
-        (process.env.EMAIL_USER || process.env.SMTP_USER) && 
-        (process.env.EMAIL_PASS || process.env.SMTP_PASS)
-    );
+    const hasEmailConfig = Boolean(process.env.RESEND_API_KEY);
 
     const uptimeSeconds = Math.floor(process.uptime());
 

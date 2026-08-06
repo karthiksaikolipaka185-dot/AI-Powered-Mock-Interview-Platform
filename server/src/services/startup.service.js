@@ -8,9 +8,9 @@ const validateEnvironmentVariables = () => {
     const requiredVars = [
         'MONGODB_URI',
         'JWT_SECRET',
-        'EMAIL_USER',
-        'EMAIL_PASS',
-        'OWNER_EMAIL'
+        'RESEND_API_KEY',
+        'OWNER_EMAIL',
+        'CLIENT_URL'
     ];
 
     const missingVars = [];
@@ -51,7 +51,7 @@ const checkServicesStatus = () => {
         gemini: Boolean(process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY),
         murf: Boolean(process.env.MURF_API_KEY),
         assemblyai: Boolean(process.env.ASSEMBLYAI_API_KEY),
-        email: Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS),
+        email: Boolean(process.env.RESEND_API_KEY),
         googleAuth: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_ID !== 'your_google_client_id'),
         routesLoaded: true
     };
@@ -83,9 +83,9 @@ const checkServicesStatus = () => {
     }
 
     if (status.email) {
-        console.log('✓ Email Ready');
+        console.log('✓ Email Ready (Resend)');
     } else {
-        console.log('✗ Email Failed (Missing EMAIL_USER or EMAIL_PASS)');
+        console.log('✗ Email Failed (Missing RESEND_API_KEY)');
     }
 
     if (status.googleAuth) {
