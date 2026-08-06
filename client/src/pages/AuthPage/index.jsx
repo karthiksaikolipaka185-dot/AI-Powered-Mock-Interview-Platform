@@ -106,6 +106,7 @@ const AuthPage = () => {
     };
 
     const handleGoogleCredentialResponse = async (response) => {
+        console.log("Receiving credential");
         console.log('[Google Auth] handleGoogleCredentialResponse triggered.');
         if (!response || !response.credential) {
             console.error('[Google Auth] Missing credential in Google response.');
@@ -119,11 +120,14 @@ const AuthPage = () => {
 
         try {
             const credential = response.credential;
+            console.log("Sending credential to backend");
             console.log('[Google Auth] Sending ID Token to backend...');
             const res = await authService.googleLogin(credential);
             console.log('[Google Auth] Backend response:', res);
             if (res.success) {
+                console.log("JWT received");
                 setSuccess('Google login successful!');
+                console.log("Dashboard redirect");
                 setTimeout(() => {
                     navigate('/');
                 }, 1000);
@@ -140,11 +144,32 @@ const AuthPage = () => {
 
     useEffect(() => {
         console.log('[Google Auth] useEffect triggered. isLogin =', isLogin);
+        
+        // Window blur listener to capture GSI iframe clicks programmatically
+        const handleWindowBlur = () => {
+            if (document.activeElement && document.activeElement.tagName === 'IFRAME') {
+                const parent = document.activeElement.parentElement;
+                if (parent && parent.id === 'google-signin-btn-container') {
+                    console.log("Google button clicked");
+                    console.log("Button clicked");
+                    console.log("Launching OAuth");
+                }
+            }
+        };
+        window.addEventListener('blur', handleWindowBlur);
+
         const initGoogleSignIn = () => {
+            console.log('[Google Auth] Checking Google Identity Services availability...');
+            console.log("Google SDK loaded");
+            console.log(`window.google loaded: ${Boolean(window.google)}`);
             if (window.google) {
-                const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '926554878988-iul14fcuh97hbkpqn2222753b0ib84vm.apps.googleusercontent.com';
-                console.log('[Google Auth] GSI loaded. Client ID:', clientId);
+                console.log(`window.google.accounts loaded: ${Boolean(window.google.accounts)}`);
+                console.log(`window.google.accounts.id loaded: ${Boolean(window.google.accounts.id)}`);
                 
+                const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '926554878988-iul14fcuh97hbkpqn2222753b0ib84vm.apps.googleusercontent.com';
+                console.log(`VITE_GOOGLE_CLIENT_ID loaded: ${Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID)}`);
+                
+                console.log("Initializing GSI");
                 if (!window.googleSignInInitialized) {
                     console.log('[Google Auth] Calling google.accounts.id.initialize...');
                     window.google.accounts.id.initialize({
@@ -156,6 +181,7 @@ const AuthPage = () => {
 
                 const container = document.getElementById('google-signin-btn-container');
                 if (container) {
+                    console.log("Rendering button");
                     console.log('[Google Auth] Rendering official Google button inside container...');
                     // Clear previous iframe components to prevent duplicates
                     container.innerHTML = '';
@@ -163,8 +189,11 @@ const AuthPage = () => {
                     window.google.accounts.id.renderButton(container, {
                         theme: 'outline',
                         size: 'large',
-                        width: 382 // Fixed width for stability
+                        width: 382, // Fixed width for stability
+                        text: 'continue_with',
+                        logo_alignment: 'left'
                     });
+                    console.log('[Google Auth] Google button successfully rendered.');
                 } else {
                     console.warn('[Google Auth] google-signin-btn-container element not found in DOM.');
                 }
@@ -191,13 +220,16 @@ const AuthPage = () => {
                 document.head.appendChild(script);
             } else {
                 console.log('[Google Auth] GSI script tag already exists.');
-                // Re-bind onload to trigger rendering for the new mount
                 script.onload = () => {
                     console.log('[Google Auth] GSI client script onload triggered (existing script).');
                     initGoogleSignIn();
                 };
             }
         }
+
+        return () => {
+            window.removeEventListener('blur', handleWindowBlur);
+        };
     }, [isLogin]);
 
     return (
@@ -344,20 +376,10 @@ const AuthPage = () => {
                         </div>
 
                         {/* Social Buttons */}
-                        <div className="relative w-full">
-                            <button 
-                                type="button"
-                                onClick={() => console.log('[Google Auth] Click event reached custom button (overlay click might have failed).')}
-                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3.5 font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/80 active:scale-[0.98] transition-all flex items-center justify-center gap-3 card-shadow-sm"
-                            >
-                                <GoogleIcon />
-                                Google Account
-                            </button>
+                        <div className="w-full flex justify-center mt-2" onClick={() => console.log('Google button clicked')}>
                             <div 
                                 id="google-signin-btn-container"
-                                onClick={() => console.log('[Google Auth] Overlay container clicked.')}
-                                className="absolute inset-0 w-full h-full opacity-0 overflow-hidden"
-                                style={{ zIndex: 99, cursor: 'pointer' }}
+                                className="w-full flex justify-center"
                             ></div>
                         </div>
                     </div>
