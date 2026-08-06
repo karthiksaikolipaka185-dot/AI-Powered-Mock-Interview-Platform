@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../../services/authService';
 import { 
@@ -105,10 +105,59 @@ const AuthPage = () => {
         }
     };
 
-    const handleGoogleLogin = () => {
-        // Trigger Google Identity Services OAuth popup or notification
-        alert('Google OAuth login endpoint is live at /api/auth/google. Please configure GOOGLE_CLIENT_ID in server/.env for production OAuth consent flow.');
+    const handleGoogleCredentialResponse = async (response) => {
+        setLoading(true);
+        setError('');
+        setSuccess('');
+
+        try {
+            const credential = response.credential;
+            const res = await authService.googleLogin(credential);
+            if (res.success) {
+                setSuccess('Google login successful!');
+                setTimeout(() => {
+                    navigate('/');
+                }, 1000);
+            }
+        } catch (err) {
+            console.error('Google login error:', err);
+            setError(err.response?.data?.message || 'Google login failed. Please try again.');
+        } finally {
+            setLoading(false);
+        }
     };
+
+    useEffect(() => {
+        const initGoogleSignIn = () => {
+            if (window.google) {
+                const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '926554878988-iul14fcuh97hbkpqn2222753b0ib84vm.apps.googleusercontent.com';
+                window.google.accounts.id.initialize({
+                    client_id: clientId,
+                    callback: handleGoogleCredentialResponse
+                });
+
+                const container = document.getElementById('google-signin-btn-container');
+                if (container) {
+                    window.google.accounts.id.renderButton(container, {
+                        theme: 'outline',
+                        size: 'large',
+                        width: container.offsetWidth || 382
+                    });
+                }
+            }
+        };
+
+        if (window.google) {
+            initGoogleSignIn();
+        } else {
+            const script = document.createElement('script');
+            script.src = 'https://accounts.google.com/gsi/client';
+            script.async = true;
+            script.defer = true;
+            script.onload = initGoogleSignIn;
+            document.head.appendChild(script);
+        }
+    }, [isLogin]);
 
     return (
         <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-950 relative overflow-hidden">
@@ -254,14 +303,20 @@ const AuthPage = () => {
                         </div>
 
                         {/* Social Buttons */}
-                        <button 
-                            type="button"
-                            onClick={handleGoogleLogin}
-                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3.5 font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/80 active:scale-[0.98] transition-all flex items-center justify-center gap-3 card-shadow-sm"
-                        >
-                            <GoogleIcon />
-                            Google Account
-                        </button>
+                        <div className="relative w-full">
+                            <button 
+                                type="button"
+                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3.5 font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/80 active:scale-[0.98] transition-all flex items-center justify-center gap-3 card-shadow-sm"
+                            >
+                                <GoogleIcon />
+                                Google Account
+                            </button>
+                            <div 
+                                id="google-signin-btn-container"
+                                className="absolute inset-0 w-full h-full opacity-0 overflow-hidden cursor-pointer"
+                                style={{ zIndex: 10 }}
+                            ></div>
+                        </div>
                     </div>
 
                     {/* Footer */}
