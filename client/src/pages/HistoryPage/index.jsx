@@ -85,24 +85,24 @@ const HistoryPage = () => {
             {/* Header Area */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-2">
-                    <div className="flex items-center gap-3 text-primary-600 dark:text-primary-400 mb-2">
+                    <div className="flex items-center gap-3 text-primary-theme mb-2">
                         <History size={24} />
                         <span className="font-bold uppercase tracking-widest text-xs">Activity Logs</span>
                     </div>
-                    <h1 className="text-4xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">Interview History</h1>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">Manage and review your past {totalEntries} simulation attempts.</p>
+                    <h1 className="text-4xl font-extrabold text-text-main tracking-tight">Interview History</h1>
+                    <p className="text-text-secondary font-medium">Manage and review your past {totalEntries} simulation attempts.</p>
                 </div>
                 
                 <div className="flex items-center gap-3">
                     <button 
                         onClick={handleClearHistory}
-                        className="flex items-center gap-2 bg-white dark:bg-slate-900 text-rose-500 border border-rose-100 dark:border-rose-900/60 px-4 py-2 rounded-xl font-bold text-sm hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-200 dark:hover:border-rose-800 transition-all active:scale-95 shadow-sm"
+                        className="flex items-center gap-2 bg-card text-rose-500 border border-border-theme px-4 py-2 rounded-xl font-bold text-sm hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-200 dark:hover:border-rose-800 transition-all active:scale-95 shadow-sm"
                     >
                         <Trash2 size={16} /> Clear All
                     </button>
                     <button 
                         onClick={() => navigate('/setup')}
-                        className="flex items-center gap-2 bg-primary-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-primary-700 hover:shadow-lg hover:shadow-primary-200 dark:hover:shadow-none transition-all active:scale-95"
+                        className="flex items-center gap-2 bg-primary-theme text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-primary-theme-hover transition-all active:scale-95"
                     >
                         <Plus size={16} /> New Session
                     </button>
@@ -113,7 +113,7 @@ const HistoryPage = () => {
             {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[...Array(6)].map((_, i) => (
-                        <div key={i} className="h-48 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl animate-pulse" />
+                        <div key={i} className="h-48 bg-card border border-border-theme rounded-2xl animate-pulse" />
                     ))}
                 </div>
             ) : interviews.length > 0 ? (
@@ -122,7 +122,7 @@ const HistoryPage = () => {
                         <div 
                             key={inv._id} 
                             onClick={() => handleInterviewClick(inv)}
-                            className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 card-shadow p-6 hover:border-primary-300 dark:hover:border-primary-700 transition-all cursor-pointer relative flex flex-col justify-between overflow-hidden"
+                            className="group bg-card rounded-2xl border border-border-theme card-shadow p-6 hover:border-primary-theme/50 transition-all cursor-pointer relative flex flex-col justify-between overflow-hidden"
                         >
                             <div className="space-y-4">
                                 <div className="flex items-start justify-between">
@@ -133,34 +133,34 @@ const HistoryPage = () => {
                                     </div>
                                     <button 
                                         onClick={(e) => handleDelete(inv._id, e)}
-                                        className="text-slate-300 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 transition-colors p-1"
+                                        className="text-text-secondary/50 hover:text-rose-500 transition-colors p-1"
                                     >
                                         <Trash2 size={18} />
                                     </button>
                                 </div>
                                 
                                 <div>
-                                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors line-clamp-1">{inv.role}</h3>
-                                    <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mt-1">
+                                    <h3 className="text-xl font-bold text-text-main group-hover:text-primary-theme transition-colors line-clamp-1">{inv.role}</h3>
+                                    <div className="flex items-center gap-2 text-text-secondary mt-1">
                                         <Calendar size={14} />
                                         <span className="text-xs font-semibold">{new Date(inv.createdAt).toLocaleDateString(undefined, { dateStyle: 'long' })}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="mt-8 flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800">
+                            <div className="mt-8 flex items-center justify-between pt-4 border-t border-border-theme">
                                 {inv.status === 'completed' ? (
-                                    <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                                    <div className="flex items-center gap-2 text-text-main">
                                         <Award size={18} className="text-amber-500" />
                                         <span className="text-sm font-bold">Score: {inv.feedback?.scores?.['Overall Performance'] || 'N/A'}/10</span>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
+                                    <div className="flex items-center gap-2 text-text-secondary">
                                         <div className="w-2 h-2 rounded-full bg-primary-400 animate-pulse" />
                                         <span className="text-xs font-bold uppercase tracking-widest">In Progress</span>
                                     </div>
                                 )}
-                                <div className="text-primary-600 dark:text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="text-primary-theme opacity-0 group-hover:opacity-100 transition-opacity">
                                     <ExternalLink size={18} />
                                 </div>
                             </div>
@@ -168,17 +168,17 @@ const HistoryPage = () => {
                     ))}
                 </div>
             ) : (
-                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-20 text-center space-y-6 card-shadow">
-                    <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-full mx-auto flex items-center justify-center text-slate-200 dark:text-slate-600">
+                <div className="bg-card rounded-3xl border border-border-theme p-20 text-center space-y-6 card-shadow">
+                    <div className="w-20 h-20 bg-accent-theme rounded-full mx-auto flex items-center justify-center text-text-secondary/50">
                         <AlertCircle size={40} />
                     </div>
                     <div className="space-y-2">
-                        <h4 className="text-2xl font-bold text-slate-800 dark:text-slate-100">No History Discovered</h4>
-                        <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto">Your completed and active interview sessions will appear here for review and management.</p>
+                        <h4 className="text-2xl font-bold text-text-main">No History Discovered</h4>
+                        <p className="text-text-secondary max-w-sm mx-auto">Your completed and active interview sessions will appear here for review and management.</p>
                     </div>
                     <button 
                         onClick={() => navigate('/setup')}
-                        className="bg-primary-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 dark:shadow-none"
+                        className="bg-primary-theme text-white px-8 py-3 rounded-xl font-bold hover:bg-primary-theme-hover transition-all"
                     >
                         Start Your First Session
                     </button>
@@ -191,7 +191,7 @@ const HistoryPage = () => {
                     <button 
                         disabled={currentPage === 1} 
                         onClick={() => setCurrentPage(prev => prev - 1)}
-                        className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-slate-900 transition-all card-shadow"
+                        className="p-2.5 rounded-xl border border-border-theme bg-card text-text-secondary hover:bg-accent-theme disabled:opacity-30 transition-all card-shadow"
                     >
                         <ChevronLeft size={24} />
                     </button>
@@ -202,8 +202,8 @@ const HistoryPage = () => {
                                 onClick={() => setCurrentPage(i + 1)}
                                 className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${
                                     currentPage === i + 1 
-                                    ? 'bg-primary-600 text-white shadow-lg shadow-primary-200 dark:shadow-none' 
-                                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-primary-300 dark:hover:border-primary-700'
+                                    ? 'bg-primary-theme text-white shadow-lg' 
+                                    : 'bg-card border border-border-theme text-text-secondary hover:border-primary-theme/50'
                                 }`}
                             >
                                 {i + 1}
@@ -213,17 +213,17 @@ const HistoryPage = () => {
                     <button 
                         disabled={currentPage === totalPages} 
                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-slate-900 transition-all card-shadow"
+                        className="p-2.5 rounded-xl border border-border-theme bg-card text-text-secondary hover:bg-accent-theme disabled:opacity-30 transition-all card-shadow"
                     >
                         <ChevronRight size={24} />
                     </button>
                 </div>
             )}
             
-            <div className="flex justify-center border-t border-slate-100 dark:border-slate-800 pt-10">
+            <div className="flex justify-center border-t border-border-theme pt-10">
                 <button 
                     onClick={() => navigate('/')}
-                    className="text-slate-500 dark:text-slate-400 font-bold hover:text-slate-800 dark:hover:text-slate-100 transition-colors flex items-center gap-2"
+                    className="text-text-secondary font-bold hover:text-text-main transition-colors flex items-center gap-2"
                 >
                     <ArrowLeft size={18} /> Return to Dashboard
                 </button>

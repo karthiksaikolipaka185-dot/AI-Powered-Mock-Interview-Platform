@@ -82,38 +82,38 @@ const AdminInterviewsPage = () => {
     const { interviews = [], pagination = {}, kpis = {} } = interviewData || {};
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-4 sm:p-6 lg:p-8 transition-colors duration-300">
+        <div className="min-h-screen bg-background text-text-main p-4 sm:p-6 lg:p-8 transition-colors duration-300">
             <div className="max-w-7xl mx-auto space-y-6">
 
                 {/* Sub-navigation Tabs */}
-                <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-2 border-b border-border-theme pb-3">
                     <Link
                         to="/admin"
-                        className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-500 hover:text-primary-600 px-3 py-2 rounded-xl transition-colors"
+                        className="flex items-center gap-2 text-xs sm:text-sm font-bold text-text-secondary hover:text-primary-theme px-3 py-2 rounded-xl transition-colors"
                     >
                         <BarChart3 size={16} /> Analytics Overview
                     </Link>
                     <Link
                         to="/admin/users"
-                        className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-500 hover:text-primary-600 px-3 py-2 rounded-xl transition-colors"
+                        className="flex items-center gap-2 text-xs sm:text-sm font-bold text-text-secondary hover:text-primary-theme px-3 py-2 rounded-xl transition-colors"
                     >
                         <Users size={16} /> User Management
                     </Link>
                     <Link
                         to="/admin/interviews"
-                        className="flex items-center gap-2 text-xs sm:text-sm font-bold text-primary-600 bg-primary-50 dark:bg-primary-950/50 border border-primary-500/20 px-3 py-2 rounded-xl"
+                        className="flex items-center gap-2 text-xs sm:text-sm font-bold text-primary-theme bg-primary-theme/10 border border-primary-theme/20 px-3 py-2 rounded-xl"
                     >
                         <Video size={16} /> Interview Management
                     </Link>
                 </div>
 
                 {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 glass p-6 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 glass p-6 rounded-2xl border border-border-theme shadow-sm">
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary-700 via-primary-600 to-indigo-500">
                             Admin Interview Management
                         </h1>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">
+                        <p className="text-text-secondary text-xs sm:text-sm mt-1">
                             Inspect candidate sessions, question timelines, code submissions, AI complexity evaluations, and scores.
                         </p>
                     </div>
@@ -121,20 +121,20 @@ const AdminInterviewsPage = () => {
                     <div className="flex items-center gap-3">
                         <button
                             onClick={fetchInterviewsList}
-                            className="p-2 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors"
+                            className="p-2 bg-accent-theme hover:bg-border-theme text-text-main rounded-xl border border-border-theme transition-colors"
                             title="Refresh Sessions"
                         >
                             <RefreshCw size={16} />
                         </button>
                         <button
                             onClick={exportCSV}
-                            className="flex items-center gap-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition-all"
+                            className="flex items-center gap-1.5 bg-primary-theme hover:bg-primary-theme-hover text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition-all"
                         >
                             <Download size={14} /> Export CSV
                         </button>
                         <button
                             onClick={() => window.print()}
-                            className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition-all"
+                            className="flex items-center gap-1.5 bg-accent-theme hover:bg-border-theme text-text-main border border-border-theme text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition-all"
                         >
                             Print PDF
                         </button>
@@ -150,9 +150,9 @@ const AdminInterviewsPage = () => {
 
                 {/* 4 KPI CARDS */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="glass p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm flex items-center justify-between">
+                    <div className="glass p-5 rounded-2xl border border-border-theme shadow-sm flex items-center justify-between">
                         <div>
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block">Total Interviews</span>
+                            <span className="text-xs font-bold text-text-secondary block">Total Interviews</span>
                             <h3 className="text-2xl font-black mt-1">{kpis?.totalInterviews || 0}</h3>
                         </div>
                         <div className="p-3 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-2xl">
@@ -160,9 +160,9 @@ const AdminInterviewsPage = () => {
                         </div>
                     </div>
 
-                    <div className="glass p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm flex items-center justify-between">
+                    <div className="glass p-5 rounded-2xl border border-border-theme shadow-sm flex items-center justify-between">
                         <div>
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block">Completed Sessions</span>
+                            <span className="text-xs font-bold text-text-secondary block">Completed Sessions</span>
                             <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{kpis?.completed || 0}</h3>
                         </div>
                         <div className="p-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl">
@@ -170,9 +170,9 @@ const AdminInterviewsPage = () => {
                         </div>
                     </div>
 
-                    <div className="glass p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm flex items-center justify-between">
+                    <div className="glass p-5 rounded-2xl border border-border-theme shadow-sm flex items-center justify-between">
                         <div>
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block">In Progress</span>
+                            <span className="text-xs font-bold text-text-secondary block">In Progress</span>
                             <h3 className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">{kpis?.inProgress || 0}</h3>
                         </div>
                         <div className="p-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-2xl">
@@ -180,9 +180,9 @@ const AdminInterviewsPage = () => {
                         </div>
                     </div>
 
-                    <div className="glass p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm flex items-center justify-between">
+                    <div className="glass p-5 rounded-2xl border border-border-theme shadow-sm flex items-center justify-between">
                         <div>
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block">Average Overall Score</span>
+                            <span className="text-xs font-bold text-text-secondary block">Average Overall Score</span>
                             <h3 className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">{kpis?.averageScore || 8.5}/10</h3>
                         </div>
                         <div className="p-3 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl">
@@ -192,44 +192,44 @@ const AdminInterviewsPage = () => {
                 </div>
 
                 {/* SEARCH & FILTERS BAR */}
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4 glass p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800/60">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 glass p-4 rounded-2xl border border-border-theme">
                     <form onSubmit={handleSearchSubmit} className="flex gap-2 w-full md:w-auto flex-1 max-w-md">
                         <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
                             <input
                                 type="text"
                                 placeholder="Search candidate, email, or role..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-card border border-border-theme rounded-xl text-text-main placeholder-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary-theme"
                             />
                         </div>
-                        <button type="submit" className="bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors">
+                        <button type="submit" className="bg-primary-theme hover:bg-primary-theme-hover text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors">
                             Search
                         </button>
                     </form>
 
                     <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                        <div className="flex items-center gap-1.5 text-xs text-text-secondary font-medium">
                             <Filter size={14} /> Status:
                         </div>
                         <select
                             value={statusFilter}
                             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="bg-card border border-border-theme text-text-main text-xs font-bold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-theme"
                         >
                             <option value="all">All Statuses</option>
                             <option value="completed">Completed</option>
                             <option value="in_progress">In Progress</option>
                         </select>
 
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                        <div className="flex items-center gap-1.5 text-xs text-text-secondary font-medium">
                             Sort:
                         </div>
                         <select
                             value={sortBy}
                             onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
-                            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="bg-card border border-border-theme text-text-main text-xs font-bold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-theme"
                         >
                             <option value="newest">Newest First</option>
                             <option value="oldest">Oldest First</option>
@@ -241,7 +241,7 @@ const AdminInterviewsPage = () => {
                         <select
                             value={limit}
                             onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
-                            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="bg-card border border-border-theme text-text-main text-xs font-bold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-theme"
                         >
                             <option value={10}>10 per page</option>
                             <option value={25}>25 per page</option>
@@ -251,18 +251,18 @@ const AdminInterviewsPage = () => {
                 </div>
 
                 {/* INTERVIEWS DATA TABLE */}
-                <div className="glass rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden">
-                    <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                <div className="glass rounded-2xl border border-border-theme shadow-sm overflow-hidden">
+                    <div className="p-4 border-b border-border-theme flex items-center justify-between">
+                        <span className="text-xs font-bold text-text-secondary">
                             Showing {interviews.length} of {pagination.totalInterviews || 0} interview sessions
                         </span>
-                        <span className="text-[11px] text-slate-400 italic">Click any session row to inspect complete timeline & code</span>
+                        <span className="text-[11px] text-text-secondary italic">Click any session row to inspect complete timeline & code</span>
                     </div>
 
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50 dark:bg-slate-900/50">
+                                <tr className="border-b border-border-theme text-xs font-bold text-text-secondary uppercase tracking-wider bg-accent-theme/40">
                                     <th className="py-3 px-4">Candidate</th>
                                     <th className="py-3 px-4">Target Role</th>
                                     <th className="py-3 px-4">Difficulty</th>
@@ -273,13 +273,13 @@ const AdminInterviewsPage = () => {
                                     <th className="py-3 px-4">Started Date</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs sm:text-sm">
+                            <tbody className="divide-y divide-border-theme text-xs sm:text-sm">
                                 {loading ? (
                                     <tr>
                                         <td colSpan={8} className="py-12 text-center">
                                             <div className="flex flex-col items-center gap-2">
-                                                <RefreshCw className="animate-spin text-primary-600" size={24} />
-                                                <span className="text-xs text-slate-500">Loading interview records...</span>
+                                                <RefreshCw className="animate-spin text-primary-theme" size={24} />
+                                                <span className="text-xs text-text-secondary">Loading interview records...</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -288,18 +288,18 @@ const AdminInterviewsPage = () => {
                                         <tr
                                             key={i.id}
                                             onClick={() => setSelectedInterviewId(i.id)}
-                                            className="hover:bg-primary-500/5 dark:hover:bg-primary-500/10 cursor-pointer transition-colors"
+                                            className="hover:bg-primary-theme/5 cursor-pointer transition-colors"
                                         >
-                                            <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                                            <td className="py-3.5 px-4 font-semibold text-text-main">
                                                 <div>
                                                     <span className="block font-bold">{i.candidateName}</span>
-                                                    <span className="text-[11px] text-slate-400 font-normal">{i.candidateEmail}</span>
+                                                    <span className="text-[11px] text-text-secondary font-normal">{i.candidateEmail}</span>
                                                 </div>
                                             </td>
-                                            <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-slate-200 capitalize">
+                                            <td className="py-3.5 px-4 font-medium text-text-main capitalize">
                                                 {i.role}
                                             </td>
-                                            <td className="py-3.5 px-4 text-xs text-slate-500 font-medium">
+                                            <td className="py-3.5 px-4 text-xs text-text-secondary font-medium">
                                                 {i.difficulty}
                                             </td>
                                             <td className="py-3.5 px-4 text-blue-600 dark:text-blue-400 font-bold text-xs">
@@ -311,7 +311,7 @@ const AdminInterviewsPage = () => {
                                                         <Code2 size={14} /> Code Submitted
                                                     </span>
                                                 ) : (
-                                                    <span className="text-slate-400 text-xs italic">Voice / Text</span>
+                                                    <span className="text-text-secondary/50 text-xs italic">Voice / Text</span>
                                                 )}
                                             </td>
                                             <td className="py-3.5 px-4 font-extrabold text-indigo-600 dark:text-indigo-400">
@@ -326,14 +326,14 @@ const AdminInterviewsPage = () => {
                                                     {i.status}
                                                 </span>
                                             </td>
-                                            <td className="py-3.5 px-4 text-slate-500 text-xs">
+                                            <td className="py-3.5 px-4 text-text-secondary text-xs">
                                                 {new Date(i.startedAt).toLocaleDateString()}
                                             </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={8} className="py-8 text-center text-slate-400 text-xs">
+                                        <td colSpan={8} className="py-8 text-center text-text-secondary/60 text-xs">
                                             No interview records match the selected search or filter criteria.
                                         </td>
                                     </tr>
@@ -344,22 +344,22 @@ const AdminInterviewsPage = () => {
 
                     {/* PAGINATION FOOTER */}
                     {pagination.totalPages > 1 && (
-                        <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
-                            <span className="text-slate-500">
-                                Page <strong className="text-slate-900 dark:text-slate-100">{pagination.currentPage}</strong> of <strong className="text-slate-900 dark:text-slate-100">{pagination.totalPages}</strong>
+                        <div className="p-4 border-t border-border-theme flex items-center justify-between text-xs">
+                            <span className="text-text-secondary">
+                                Page <strong className="text-text-main">{pagination.currentPage}</strong> of <strong className="text-text-main">{pagination.totalPages}</strong>
                             </span>
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => setPage(p => Math.max(1, p - 1))}
                                     disabled={page === 1}
-                                    className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                    className="p-2 rounded-xl border border-border-theme text-text-secondary disabled:opacity-40 disabled:cursor-not-allowed hover:bg-accent-theme transition-colors"
                                 >
                                     <ChevronLeft size={16} />
                                 </button>
                                 <button
                                     onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
                                     disabled={page === pagination.totalPages}
-                                    className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                    className="p-2 rounded-xl border border-border-theme text-text-secondary disabled:opacity-40 disabled:cursor-not-allowed hover:bg-accent-theme transition-colors"
                                 >
                                     <ChevronRight size={16} />
                                 </button>

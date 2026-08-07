@@ -7,7 +7,7 @@ const ProtectedRoute = ({ children }) => {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-primary-100 selection:text-primary-900">
+        <div className="min-h-screen bg-background font-sans text-text-main selection:bg-primary-100 selection:text-primary-900">
             {children}
         </div>
     );

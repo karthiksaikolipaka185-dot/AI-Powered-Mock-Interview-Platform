@@ -2,16 +2,64 @@
 @config "../tailwind.config.js";
 @custom-variant dark (&:where(.dark, .dark *));
 
+:root {
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-secondary: #475569;
+  --primary: #4f6ef5;
+  --primary-hover: #3c52e8;
+  --accent: #f1f5f9;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+}
+
+.dark {
+  --background: #090d16;
+  --surface: #111827;
+  --card: #111827;
+  --border: #1f2937;
+  --text: #f9fafb;
+  --text-secondary: #9ca3af;
+  --primary: #4f6ef5;
+  --primary-hover: #3c52e8;
+  --accent: #1f2937;
+  --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-border-theme: var(--border);
+  --color-text-main: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-primary-theme: var(--primary);
+  --color-primary-theme-hover: var(--primary-hover);
+  --color-accent-theme: var(--accent);
+  --shadow-theme-shadow: var(--shadow);
+}
+
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300;
+    background-color: var(--background);
+    color: var(--text);
+  }
+
+  body, div, nav, section, main, header, footer, button, input, select, textarea, a, span, h1, h2, h3, h4, h5, h6 {
+    transition-property: background-color, color, border-color, box-shadow;
+    transition-duration: 200ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 
 .glass {
-  @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md;
+  background-color: color-mix(in srgb, var(--surface) 80%, transparent);
+  backdrop-filter: blur(12px);
 }
 
 .card-shadow {
-  @apply shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)];
+  box-shadow: var(--shadow);
 }
+

@@ -91,38 +91,38 @@ const AdminUsersPage = () => {
     const { users = [], pagination = {}, kpis = {} } = userData || {};
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-4 sm:p-6 lg:p-8 transition-colors duration-300">
+        <div className="min-h-screen bg-background text-text-main p-4 sm:p-6 lg:p-8 transition-colors duration-300">
             <div className="max-w-7xl mx-auto space-y-6">
 
                 {/* Sub-navigation Tabs */}
-                <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-2 border-b border-border-theme pb-3">
                     <Link
                         to="/admin"
-                        className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-500 hover:text-primary-600 px-3 py-2 rounded-xl transition-colors"
+                        className="flex items-center gap-2 text-xs sm:text-sm font-bold text-text-secondary hover:text-primary-theme px-3 py-2 rounded-xl transition-colors"
                     >
                         <BarChart3 size={16} /> Analytics Overview
                     </Link>
                     <Link
                         to="/admin/users"
-                        className="flex items-center gap-2 text-xs sm:text-sm font-bold text-primary-600 bg-primary-50 dark:bg-primary-950/50 border border-primary-500/20 px-3 py-2 rounded-xl"
+                        className="flex items-center gap-2 text-xs sm:text-sm font-bold text-primary-theme bg-primary-theme/10 border border-primary-theme/20 px-3 py-2 rounded-xl"
                     >
                         <Users size={16} /> User Management
                     </Link>
                     <Link
                         to="/admin/interviews"
-                        className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-500 hover:text-primary-600 px-3 py-2 rounded-xl transition-colors"
+                        className="flex items-center gap-2 text-xs sm:text-sm font-bold text-text-secondary hover:text-primary-theme px-3 py-2 rounded-xl transition-colors"
                     >
                         <Video size={16} /> Interview Management
                     </Link>
                 </div>
 
                 {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 glass p-6 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 glass p-6 rounded-2xl border border-border-theme shadow-sm">
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary-700 via-primary-600 to-indigo-500">
                             Admin User Management
                         </h1>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">
+                        <p className="text-text-secondary text-xs sm:text-sm mt-1">
                             Inspect candidate profiles, activity status, interview history, and performance telemetry.
                         </p>
                     </div>
@@ -130,20 +130,20 @@ const AdminUsersPage = () => {
                     <div className="flex items-center gap-3">
                         <button
                             onClick={fetchUsers}
-                            className="p-2 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors"
+                            className="p-2 bg-accent-theme hover:bg-border-theme text-text-main rounded-xl border border-border-theme transition-colors"
                             title="Refresh Users"
                         >
                             <RefreshCw size={16} />
                         </button>
                         <button
                             onClick={exportCSV}
-                            className="flex items-center gap-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition-all"
+                            className="flex items-center gap-1.5 bg-primary-theme hover:bg-primary-theme-hover text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition-all"
                         >
                             <Download size={14} /> Export CSV
                         </button>
                         <button
                             onClick={() => window.print()}
-                            className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition-all"
+                            className="flex items-center gap-1.5 bg-accent-theme hover:bg-border-theme text-text-main border border-border-theme text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition-all"
                         >
                             Print PDF
                         </button>
@@ -159,9 +159,9 @@ const AdminUsersPage = () => {
 
                 {/* 4 KPI CARDS */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="glass p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm flex items-center justify-between">
+                    <div className="glass p-5 rounded-2xl border border-border-theme shadow-sm flex items-center justify-between">
                         <div>
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block">Total Registered</span>
+                            <span className="text-xs font-bold text-text-secondary block">Total Registered</span>
                             <h3 className="text-2xl font-black mt-1">{kpis?.totalUsers || 0}</h3>
                         </div>
                         <div className="p-3 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl">
@@ -169,9 +169,9 @@ const AdminUsersPage = () => {
                         </div>
                     </div>
 
-                    <div className="glass p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm flex items-center justify-between">
+                    <div className="glass p-5 rounded-2xl border border-border-theme shadow-sm flex items-center justify-between">
                         <div>
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block">Active Candidates</span>
+                            <span className="text-xs font-bold text-text-secondary block">Active Candidates</span>
                             <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{kpis?.activeUsers || 0}</h3>
                         </div>
                         <div className="p-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl">
@@ -179,9 +179,9 @@ const AdminUsersPage = () => {
                         </div>
                     </div>
 
-                    <div className="glass p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm flex items-center justify-between">
+                    <div className="glass p-5 rounded-2xl border border-border-theme shadow-sm flex items-center justify-between">
                         <div>
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block">Inactive Users</span>
+                            <span className="text-xs font-bold text-text-secondary block">Inactive Users</span>
                             <h3 className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1">{kpis?.inactiveUsers || 0}</h3>
                         </div>
                         <div className="p-3 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-2xl">
@@ -189,9 +189,9 @@ const AdminUsersPage = () => {
                         </div>
                     </div>
 
-                    <div className="glass p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm flex items-center justify-between">
+                    <div className="glass p-5 rounded-2xl border border-border-theme shadow-sm flex items-center justify-between">
                         <div>
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block">New This Week</span>
+                            <span className="text-xs font-bold text-text-secondary block">New This Week</span>
                             <h3 className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">+{kpis?.newUsersThisWeek || 0}</h3>
                         </div>
                         <div className="p-3 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-2xl">
@@ -201,31 +201,31 @@ const AdminUsersPage = () => {
                 </div>
 
                 {/* SEARCH & FILTERS BAR */}
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4 glass p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800/60">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 glass p-4 rounded-2xl border border-border-theme">
                     <form onSubmit={handleSearchSubmit} className="flex gap-2 w-full md:w-auto flex-1 max-w-md">
                         <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
                             <input
                                 type="text"
                                 placeholder="Search by name or email address..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-card border border-border-theme rounded-xl text-text-main placeholder-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary-theme"
                             />
                         </div>
-                        <button type="submit" className="bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors">
+                        <button type="submit" className="bg-primary-theme hover:bg-primary-theme-hover text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors">
                             Search
                         </button>
                     </form>
 
                     <div className="flex items-center gap-3 w-full md:w-auto">
-                        <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                        <div className="flex items-center gap-2 text-xs text-text-secondary font-medium">
                             <Filter size={14} /> Filter Status:
                         </div>
                         <select
                             value={filterStatus}
                             onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
-                            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="bg-card border border-border-theme text-text-main text-xs font-bold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-theme"
                         >
                             <option value="all">All Statuses</option>
                             <option value="active">Active</option>
@@ -236,7 +236,7 @@ const AdminUsersPage = () => {
                         <select
                             value={limit}
                             onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
-                            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="bg-card border border-border-theme text-text-main text-xs font-bold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-theme"
                         >
                             <option value={10}>10 per page</option>
                             <option value={25}>25 per page</option>
@@ -246,18 +246,18 @@ const AdminUsersPage = () => {
                 </div>
 
                 {/* USER DATA TABLE */}
-                <div className="glass rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden">
-                    <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                <div className="glass rounded-2xl border border-border-theme shadow-sm overflow-hidden">
+                    <div className="p-4 border-b border-border-theme flex items-center justify-between">
+                        <span className="text-xs font-bold text-text-secondary">
                             Showing {users.length} of {pagination.totalUsers || 0} candidate accounts
                         </span>
-                        <span className="text-[11px] text-slate-400 italic">Click any user row to view full drawer telemetry</span>
+                        <span className="text-[11px] text-text-secondary italic">Click any user row to view full drawer telemetry</span>
                     </div>
 
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50 dark:bg-slate-900/50">
+                                <tr className="border-b border-border-theme text-xs font-bold text-text-secondary uppercase tracking-wider bg-accent-theme/40">
                                     <th className="py-3 px-4">Candidate</th>
                                     <th className="py-3 px-4">Joined Date</th>
                                     <th className="py-3 px-4">Last Login</th>
@@ -267,13 +267,13 @@ const AdminUsersPage = () => {
                                     <th className="py-3 px-4">Account Status</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs sm:text-sm">
+                            <tbody className="divide-y divide-border-theme text-xs sm:text-sm">
                                 {loading ? (
                                     <tr>
                                         <td colSpan={7} className="py-12 text-center">
                                             <div className="flex flex-col items-center gap-2">
-                                                <RefreshCw className="animate-spin text-primary-600" size={24} />
-                                                <span className="text-xs text-slate-500">Loading user accounts...</span>
+                                                <RefreshCw className="animate-spin text-primary-theme" size={24} />
+                                                <span className="text-xs text-text-secondary">Loading user accounts...</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -282,11 +282,11 @@ const AdminUsersPage = () => {
                                         <tr
                                             key={u.id}
                                             onClick={() => setSelectedUserId(u.id)}
-                                            className="hover:bg-primary-500/5 dark:hover:bg-primary-500/10 cursor-pointer transition-colors"
+                                            className="hover:bg-primary-theme/5 cursor-pointer transition-colors"
                                         >
                                             <td className="py-3.5 px-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold flex items-center justify-center overflow-hidden">
+                                                    <div className="w-8 h-8 rounded-full bg-accent-theme text-text-secondary font-bold flex items-center justify-center overflow-hidden">
                                                         {u.profileImage ? (
                                                             <img src={u.profileImage} alt={u.name} className="w-full h-full object-cover" />
                                                         ) : (
@@ -294,15 +294,15 @@ const AdminUsersPage = () => {
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <span className="font-bold text-slate-900 dark:text-slate-100 block">{u.name}</span>
-                                                        <span className="text-[11px] text-slate-400">{u.email}</span>
+                                                        <span className="font-bold text-text-main block">{u.name}</span>
+                                                        <span className="text-[11px] text-text-secondary">{u.email}</span>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="py-3.5 px-4 text-slate-600 dark:text-slate-400 text-xs">
+                                            <td className="py-3.5 px-4 text-text-secondary text-xs">
                                                 {new Date(u.joinedAt).toLocaleDateString()}
                                             </td>
-                                            <td className="py-3.5 px-4 text-slate-500 text-xs">
+                                            <td className="py-3.5 px-4 text-text-secondary text-xs">
                                                 {new Date(u.lastLogin).toLocaleDateString()}
                                             </td>
                                             <td className="py-3.5 px-4">
@@ -311,12 +311,12 @@ const AdminUsersPage = () => {
                                                         <FileText size={14} /> Uploaded
                                                     </span>
                                                 ) : (
-                                                    <span className="text-slate-400 text-xs italic">Missing</span>
+                                                    <span className="text-text-secondary/50 text-xs italic">Missing</span>
                                                 )}
                                             </td>
                                             <td className="py-3.5 px-4">
-                                                <span className="font-bold text-slate-800 dark:text-slate-200">{u.interviewCount}</span>
-                                                <span className="text-[10px] text-slate-400 ml-1">({u.completedInterviews} completed)</span>
+                                                <span className="font-bold text-text-main">{u.interviewCount}</span>
+                                                <span className="text-[10px] text-text-secondary ml-1">({u.completedInterviews} completed)</span>
                                             </td>
                                             <td className="py-3.5 px-4 font-bold text-blue-600 dark:text-blue-400">
                                                 {u.averageScore > 0 ? `${u.averageScore}/10` : 'N/A'}
@@ -328,7 +328,7 @@ const AdminUsersPage = () => {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
+                                        <td colSpan={7} className="py-8 text-center text-text-secondary/60 text-xs">
                                             No user accounts match the selected search or filter criteria.
                                         </td>
                                     </tr>
@@ -339,22 +339,22 @@ const AdminUsersPage = () => {
 
                     {/* PAGINATION FOOTER */}
                     {pagination.totalPages > 1 && (
-                        <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
-                            <span className="text-slate-500">
-                                Page <strong className="text-slate-900 dark:text-slate-100">{pagination.currentPage}</strong> of <strong className="text-slate-900 dark:text-slate-100">{pagination.totalPages}</strong>
+                        <div className="p-4 border-t border-border-theme flex items-center justify-between text-xs">
+                            <span className="text-text-secondary">
+                                Page <strong className="text-text-main">{pagination.currentPage}</strong> of <strong className="text-text-main">{pagination.totalPages}</strong>
                             </span>
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => setPage(p => Math.max(1, p - 1))}
                                     disabled={page === 1}
-                                    className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                    className="p-2 rounded-xl border border-border-theme text-text-secondary disabled:opacity-40 disabled:cursor-not-allowed hover:bg-accent-theme transition-colors"
                                 >
                                     <ChevronLeft size={16} />
                                 </button>
                                 <button
                                     onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
                                     disabled={page === pagination.totalPages}
-                                    className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                    className="p-2 rounded-xl border border-border-theme text-text-secondary disabled:opacity-40 disabled:cursor-not-allowed hover:bg-accent-theme transition-colors"
                                 >
                                     <ChevronRight size={16} />
                                 </button>

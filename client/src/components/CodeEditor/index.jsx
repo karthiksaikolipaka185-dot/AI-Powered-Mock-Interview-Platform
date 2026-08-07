@@ -13,9 +13,9 @@ const CodeEditor = ({ onSubmit }) => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#1e1e1e] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl">
+        <div className="flex flex-col h-full bg-[#1e1e1e] rounded-2xl overflow-hidden border border-border-theme shadow-2xl">
             {/* Editor Toolbar */}
-            <div className="flex items-center justify-between px-4 py-3 bg-[#252526] border-b border-slate-800">
+            <div className="flex items-center justify-between px-4 py-3 bg-[#252526] border-b border-border-theme">
                 <div className="flex items-center gap-4">
                     <div className="flex gap-1.5 px-2">
                         <div className="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
@@ -42,7 +42,7 @@ const CodeEditor = ({ onSubmit }) => {
                     <button 
                         onClick={handleSubmit}
                         disabled={!code.trim() || isSaving}
-                        className="flex items-center gap-2 bg-primary-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-primary-700 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100"
+                        className="flex items-center gap-2 bg-primary-theme text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-primary-theme-hover active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100"
                     >
                         {isSaving ? <CheckCircle size={14} className="animate-pulse" /> : <Play size={14} fill="currentColor" />}
                         <span>{isSaving ? 'Running...' : 'Execute'}</span>

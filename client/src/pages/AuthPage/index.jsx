@@ -233,7 +233,7 @@ const AuthPage = () => {
     }, [isLogin]);
 
     return (
-        <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-950 relative overflow-hidden">
+        <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-background relative overflow-hidden">
             {/* Decorative Background Elements */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                 <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary-500/5 rounded-full blur-[120px]"></div>
@@ -241,16 +241,16 @@ const AuthPage = () => {
             </div>
 
             <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-500">
-                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 card-shadow overflow-hidden">
+                <div className="bg-card rounded-3xl border border-border-theme card-shadow overflow-hidden">
                     {/* Header */}
                     <div className="p-8 pb-4 text-center">
                         <div className="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-primary-500/20">
                             {isLogin ? <LogIn className="text-white" size={32} /> : <UserPlus className="text-white" size={32} />}
                         </div>
-                        <h2 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">
+                        <h2 className="text-3xl font-extrabold text-text-main tracking-tight">
                             {isLogin ? 'Welcome Back' : 'Get Started'}
                         </h2>
-                        <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
+                        <p className="text-text-secondary mt-2 font-medium">
                             {isLogin ? 'Sign in to continue your interview practice' : 'Create an account to start your AI journey'}
                         </p>
                     </div>
@@ -274,10 +274,10 @@ const AuthPage = () => {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             {!isLogin && (
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Full Name</label>
+                                    <label className="text-xs font-bold text-text-secondary uppercase tracking-widest ml-1">Full Name</label>
                                     <div className="relative group">
                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <UserIcon className="text-slate-400 dark:text-slate-500 group-focus-within:text-primary-500 transition-colors" size={18} />
+                                            <UserIcon className="text-text-secondary group-focus-within:text-primary-theme transition-colors" size={18} />
                                         </div>
                                         <input 
                                             type="text"
@@ -286,17 +286,17 @@ const AuthPage = () => {
                                             value={formData.name}
                                             onChange={handleChange}
                                             placeholder="John Doe"
-                                            className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-slate-900 transition-all font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
+                                            className="w-full bg-accent-theme border-2 border-border-theme rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-theme focus:bg-surface transition-all font-medium text-text-main placeholder-text-secondary/50"
                                         />
                                     </div>
                                 </div>
                             )}
 
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Email Address</label>
+                                <label className="text-xs font-bold text-text-secondary uppercase tracking-widest ml-1">Email Address</label>
                                 <div className="relative group">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <Mail className="text-slate-400 dark:text-slate-500 group-focus-within:text-primary-500 transition-colors" size={18} />
+                                        <Mail className="text-text-secondary group-focus-within:text-primary-theme transition-colors" size={18} />
                                     </div>
                                     <input 
                                         type="email"
@@ -305,21 +305,21 @@ const AuthPage = () => {
                                         value={formData.email}
                                         onChange={handleChange}
                                         placeholder="john@gmail.com"
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-slate-900 transition-all font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
+                                        className="w-full bg-accent-theme border-2 border-border-theme rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-theme focus:bg-surface transition-all font-medium text-text-main placeholder-text-secondary/50"
                                     />
                                 </div>
                             </div>
 
                             <div className="space-y-1.5">
                                 <div className="flex justify-between items-center ml-1">
-                                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Password</label>
+                                    <label className="text-xs font-bold text-text-secondary uppercase tracking-widest">Password</label>
                                     {isLogin && (
-                                        <button type="button" className="text-[10px] font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 tracking-tight">Forgot?</button>
+                                        <button type="button" className="text-[10px] font-bold text-primary-theme hover:text-primary-theme-hover tracking-tight">Forgot?</button>
                                     )}
                                 </div>
                                 <div className="relative group">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <Lock className="text-slate-400 dark:text-slate-500 group-focus-within:text-primary-500 transition-colors" size={18} />
+                                        <Lock className="text-text-secondary group-focus-within:text-primary-theme transition-colors" size={18} />
                                     </div>
                                     <input 
                                         type="password"
@@ -328,19 +328,19 @@ const AuthPage = () => {
                                         value={formData.password}
                                         onChange={handleChange}
                                         placeholder="••••••••"
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-slate-900 transition-all font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
+                                        className="w-full bg-accent-theme border-2 border-border-theme rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-theme focus:bg-surface transition-all font-medium text-text-main placeholder-text-secondary/50"
                                     />
                                 </div>
 
                                 {/* Password Policy Checklist on Signup */}
                                 {!isLogin && formData.password.length > 0 && (
-                                    <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/60 text-[11px] space-y-1 mt-2">
-                                        <span className="font-bold text-slate-400 block mb-1">Password Requirements:</span>
+                                    <div className="p-3 bg-accent-theme rounded-xl border border-border-theme text-[11px] space-y-1 mt-2">
+                                        <span className="font-bold text-text-secondary block mb-1">Password Requirements:</span>
                                         {passwordRequirements.map((req, idx) => {
                                             const met = req.check(formData.password);
                                             return (
-                                                <div key={idx} className={`flex items-center gap-1.5 font-medium ${met ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
-                                                    {met ? <CheckCircle2 size={12} /> : <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 ml-1"></div>}
+                                                <div key={idx} className={`flex items-center gap-1.5 font-medium ${met ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-secondary'}`}>
+                                                    {met ? <CheckCircle2 size={12} /> : <div className="w-1.5 h-1.5 rounded-full bg-text-secondary/40 ml-1"></div>}
                                                     <span>{req.label}</span>
                                                 </div>
                                             );
@@ -352,7 +352,7 @@ const AuthPage = () => {
                             <button 
                                 type="submit" 
                                 disabled={loading}
-                                className="w-full bg-primary-600 text-white rounded-2xl py-4 font-extrabold text-lg shadow-xl shadow-primary-500/20 hover:bg-primary-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-70"
+                                className="w-full bg-primary-theme text-white rounded-2xl py-4 font-extrabold text-lg shadow-xl shadow-primary-500/20 hover:bg-primary-theme-hover active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-70"
                             >
                                 {loading ? (
                                     <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -368,10 +368,10 @@ const AuthPage = () => {
                         {/* Divider */}
                         <div className="relative my-8">
                             <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-slate-100 dark:border-slate-800"></div>
+                                <div className="w-full border-t border-border-theme"></div>
                             </div>
                             <div className="relative flex justify-center text-xs font-bold uppercase tracking-widest">
-                                <span className="bg-white dark:bg-slate-900 px-4 text-slate-300 dark:text-slate-600">Or continue with</span>
+                                <span className="bg-card px-4 text-text-secondary/60">Or continue with</span>
                             </div>
                         </div>
 
@@ -385,12 +385,12 @@ const AuthPage = () => {
                     </div>
 
                     {/* Footer */}
-                    <div className="p-6 bg-slate-50/50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800 text-center">
-                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                    <div className="p-6 bg-accent-theme/30 border-t border-border-theme text-center">
+                        <p className="text-sm font-medium text-text-secondary">
                             {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
                             <button 
                                 onClick={() => { setIsLogin(!isLogin); setError(''); setSuccess(''); }} 
-                                className="text-primary-600 dark:text-primary-400 font-extrabold hover:text-primary-700 dark:hover:text-primary-300 hover:underline transition-all"
+                                className="text-primary-theme font-extrabold hover:text-primary-theme-hover hover:underline transition-all"
                             >
                                 {isLogin ? 'Sign Up Free' : 'Sign In'}
                             </button>

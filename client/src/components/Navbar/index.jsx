@@ -27,7 +27,7 @@ const Navbar = () => {
     }
 
     return (
-        <nav className="sticky top-0 z-50 glass border-b border-slate-200/60 dark:border-slate-800/60 card-shadow h-16 flex items-center justify-between px-6 md:px-12 transition-colors duration-300">
+        <nav className="sticky top-0 z-50 glass border-b border-border-theme card-shadow h-16 flex items-center justify-between px-6 md:px-12">
             <div className="flex items-center gap-2">
                 <Link to="/" className="flex items-center gap-2">
                     <div className="w-9 h-9 bg-primary-600 rounded-lg flex items-center justify-center shadow-lg shadow-primary-500/30">
@@ -49,8 +49,8 @@ const Navbar = () => {
                                 to={path}
                                 className={`flex items-center gap-2 text-sm font-medium transition-all duration-200 p-2 rounded-md ${
                                     isActive 
-                                    ? 'text-primary-600 bg-primary-50 dark:bg-primary-950/50 dark:text-primary-400' 
-                                    : 'text-slate-600 dark:text-slate-300 hover:text-primary-500 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                    ? 'text-primary-theme bg-primary-theme/10' 
+                                    : 'text-text-secondary hover:text-primary-theme hover:bg-accent-theme'
                                 }`}
                             >
                                 <Icon size={18} />
@@ -60,13 +60,13 @@ const Navbar = () => {
                     })}
                 </div>
                 
-                <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block"></div>
+                <div className="h-6 w-px bg-border-theme hidden sm:block"></div>
                 
                 <div className="flex items-center gap-3">
                     <button 
                         onClick={toggleTheme}
                         aria-label="Toggle Theme"
-                        className="p-2 text-slate-500 dark:text-slate-400 hover:text-primary-500 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors flex items-center justify-center"
+                        className="p-2 text-text-secondary hover:text-primary-theme hover:bg-accent-theme rounded-full transition-colors flex items-center justify-center"
                     >
                         {theme === 'dark' ? <Sun size={20} className="text-amber-400" /> : <Moon size={20} />}
                     </button>
@@ -74,28 +74,28 @@ const Navbar = () => {
                     {user ? (
                         <div className="flex items-center gap-3">
                             <div className="flex flex-col items-end hidden md:flex">
-                                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-none">{user.name}</span>
-                                <span className="text-[10px] font-medium text-slate-400 capitalize">{isUserAdmin ? 'Platform Administrator' : (user.role || 'Candidate')}</span>
+                                <span className="text-xs font-bold text-text-main leading-none">{user.name}</span>
+                                <span className="text-[10px] font-medium text-text-secondary capitalize">{isUserAdmin ? 'Platform Administrator' : (user.role || 'Candidate')}</span>
                             </div>
                             <div className="relative group">
-                                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-white dark:border-slate-700 shadow-sm flex items-center justify-center cursor-pointer hover:border-primary-200 transition-all">
+                                <div className="w-10 h-10 rounded-full bg-accent-theme border-2 border-border-theme shadow-sm flex items-center justify-center cursor-pointer hover:border-primary-200 transition-all">
                                     {user.picture ? (
                                         <img src={user.picture} alt={user.name} className="w-full h-full rounded-full object-cover" />
                                     ) : (
-                                        <User size={20} className="text-slate-600 dark:text-slate-300" />
+                                        <User size={20} className="text-text-secondary" />
                                     )}
                                 </div>
                                 <button 
                                     onClick={handleLogout}
-                                    className="absolute top-12 right-0 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl py-2 px-4 shadow-xl text-rose-500 text-xs font-bold flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-100 dark:border-rose-900/40"
+                                    className="absolute top-12 right-0 bg-card border border-border-theme rounded-xl py-2 px-4 shadow-xl text-rose-500 text-xs font-bold flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-100 dark:border-rose-900/40"
                                 >
                                     <LogOut size={14} /> Logout Session
                                 </button>
                             </div>
                         </div>
                     ) : (
-                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-white dark:border-slate-700 shadow-sm flex items-center justify-center cursor-pointer hover:border-primary-200 transition-all">
-                            <User size={20} className="text-slate-600 dark:text-slate-300" />
+                        <div className="w-10 h-10 rounded-full bg-accent-theme border-2 border-border-theme shadow-sm flex items-center justify-center cursor-pointer hover:border-primary-200 transition-all">
+                            <User size={20} className="text-text-secondary" />
                         </div>
                     )}
                 </div>

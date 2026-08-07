@@ -15,15 +15,15 @@ import {
 } from 'lucide-react';
 
 const StatCard = ({ title, value, icon: Icon, color }) => (
-    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 card-shadow hover:border-primary-200 dark:hover:border-primary-800 transition-all duration-300">
+    <div className="bg-card p-6 rounded-2xl border border-border-theme card-shadow hover:border-primary-theme/50 transition-all duration-300">
         <div className="flex items-center justify-between mb-4">
             <div className={`p-3 rounded-xl ${color}`}>
                 <Icon size={24} className="text-white" />
             </div>
-            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Metrics</span>
+            <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Metrics</span>
         </div>
-        <h3 className="text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">{value}</h3>
-        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">{title}</p>
+        <h3 className="text-3xl font-bold text-text-main tracking-tight">{value}</h3>
+        <p className="text-sm font-medium text-text-secondary mt-1">{title}</p>
     </div>
 );
 
@@ -141,7 +141,7 @@ const HomePage = () => {
             {/* Stats Section */}
             <section>
                 <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Performance Overview</h2>
+                    <h2 className="text-2xl font-bold text-text-main">Performance Overview</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <StatCard 
@@ -168,38 +168,38 @@ const HomePage = () => {
             {/* Recent Activity */}
             <section className="space-y-6">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Recent Activity</h2>
+                    <h2 className="text-2xl font-bold text-text-main">Recent Activity</h2>
                     {allInterviews.length > 3 && (
                         <button 
                             onClick={() => navigate('/history')}
-                            className="text-primary-600 dark:text-primary-400 font-semibold flex items-center gap-1 hover:gap-2 transition-all"
+                            className="text-primary-theme font-semibold flex items-center gap-1 hover:gap-2 transition-all"
                         >
                             View All <ChevronRight size={20} />
                         </button>
                     )}
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 card-shadow overflow-hidden">
+                <div className="bg-card rounded-2xl border border-border-theme card-shadow overflow-hidden">
                     {recentInterviews.length > 0 ? (
-                        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                        <div className="divide-y divide-border-theme">
                             {recentInterviews.map((inv) => (
                                 <div 
                                     key={inv._id} 
                                     onClick={() => navigate(inv.status === 'completed' ? `/feedback/${inv._id}` : `/interview/${inv._id}`)}
-                                    className="group flex items-center justify-between p-6 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+                                    className="group flex items-center justify-between p-6 hover:bg-accent-theme transition-colors cursor-pointer"
                                 >
                                     <div className="flex items-center gap-5">
                                         <div className={`p-3 rounded-xl ${inv.status === 'completed' ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400' : 'bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400'}`}>
                                             {inv.status === 'completed' ? <Trophy size={24} /> : <Calendar size={24} />}
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-slate-800 dark:text-slate-100 text-lg group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{inv.role} Interview</h4>
-                                            <p className="text-slate-500 dark:text-slate-400 text-sm flex items-center gap-2 mt-0.5">
+                                            <h4 className="font-bold text-text-main text-lg group-hover:text-primary-theme transition-colors">{inv.role} Interview</h4>
+                                            <p className="text-text-secondary text-sm flex items-center gap-2 mt-0.5">
                                                 {inv.status === 'completed' 
                                                     ? <span className="flex items-center gap-1"><CheckCircle size={14} className="text-emerald-500" /> Completed</span>
                                                     : <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-primary-400 animate-pulse"></div> In Progress</span>
                                                 }
-                                                <span className="text-slate-300 dark:text-slate-600">•</span>
+                                                <span className="text-text-secondary/50">•</span>
                                                 {new Date(inv.createdAt).toLocaleDateString()}
                                             </p>
                                         </div>
@@ -207,25 +207,25 @@ const HomePage = () => {
                                     <div className="flex items-center gap-6">
                                         {inv.status === 'completed' && inv.feedback?.scores?.['Overall Performance'] && (
                                             <div className="text-right hidden sm:block">
-                                                <div className="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Score</div>
-                                                <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{inv.feedback.scores['Overall Performance']}<span className="text-sm text-slate-400 dark:text-slate-500 ml-0.5">/10</span></div>
+                                                <div className="text-sm font-semibold text-text-secondary uppercase tracking-widest">Score</div>
+                                                <div className="text-2xl font-bold text-text-main">{inv.feedback.scores['Overall Performance']}<span className="text-sm text-text-secondary ml-0.5">/10</span></div>
                                             </div>
                                         )}
-                                        <ChevronRight size={24} className="text-slate-300 dark:text-slate-600 group-hover:text-primary-400 transition-colors" />
+                                        <ChevronRight size={24} className="text-text-secondary/50 group-hover:text-primary-theme transition-colors" />
                                     </div>
                                 </div>
                             ))}
                         </div>
                     ) : (
                         <div className="p-12 text-center">
-                            <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-3xl mx-auto flex items-center justify-center mb-6">
-                                <BarChart2 size={40} className="text-slate-300 dark:text-slate-600" />
+                            <div className="w-20 h-20 bg-accent-theme rounded-3xl mx-auto flex items-center justify-center mb-6">
+                                <BarChart2 size={40} className="text-text-secondary" />
                             </div>
-                            <h4 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">No Interviews Yet</h4>
-                            <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-sm mx-auto">Start your first AI-powered mock interview to see your stats and analysis here.</p>
+                            <h4 className="text-xl font-bold text-text-main mb-2">No Interviews Yet</h4>
+                            <p className="text-text-secondary mb-8 max-w-sm mx-auto">Start your first AI-powered mock interview to see your stats and analysis here.</p>
                             <button 
                                 onClick={() => navigate('/setup')}
-                                className="bg-primary-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-md shadow-primary-200 dark:shadow-none"
+                                className="bg-primary-theme text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-theme-hover transition-all shadow-md shadow-primary-200 dark:shadow-none"
                             >
                                 Start First Session
                             </button>

@@ -25,7 +25,7 @@ import AdminRoute from './components/AdminRoute';
 const App = () => {
     return (
         <Router>
-            <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+            <div className="min-h-screen bg-background text-text-main">
                 <Navbar />
                 <Routes>
                     {/* Public Authentication Route */}
