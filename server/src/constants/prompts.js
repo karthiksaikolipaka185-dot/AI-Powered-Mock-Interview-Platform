@@ -214,6 +214,41 @@ Code:
 ${code}
 `;
 
+const EVALUATE_CLAIM_EVIDENCE_PROMPT = (claimText, question, candidateAnswer, answerEval) => `
+You are an objective technical auditor evaluating candidate interview evidence against a specific claim or project from their resume.
+
+Resume Claim / Project Context:
+"${claimText}"
+
+Interview Question Asked:
+"${question}"
+
+Candidate Answer Provided:
+"${candidateAnswer}"
+
+Answer Evaluation Metrics:
+Technical Score: ${answerEval?.technicalScore || 'N/A'}/10
+Depth Rating: ${answerEval?.depthRating || 'N/A'}
+
+Task:
+Determine how well the candidate's response supports their resume claim using neutral, evidence-based criteria.
+Do NOT use judgmental words like "fake", "liar", "fraud", or "dishonest".
+
+Allowed Statuses:
+- "supported": Candidate demonstrated concrete technical depth, architectural understanding, and hands-on detail matching the claim.
+- "partially_supported": Candidate demonstrated general familiarity, but lacked granular implementation details or metrics.
+- "insufficient_evidence": Candidate answer was too brief, surface-level, or skipped detail necessary to evaluate the claim.
+- "needs_clarification": Candidate response diverged from stated technologies or metric claims, requiring further clarification.
+
+Return strictly valid JSON:
+{
+  "evidenceStatus": "<supported|partially_supported|insufficient_evidence|needs_clarification>",
+  "reasoning": "1-2 sentence neutral explanation of evidence match",
+  "extractedEvidence": ["Short technical detail or metric cited by candidate"],
+  "confidenceRating": <number 0.0 to 1.0>
+}
+`;
+
 module.exports = {
     GENERATE_QUESTIONS_PROMPT,
     FOLLOW_UP_PROMPT,
@@ -225,5 +260,6 @@ module.exports = {
     EVALUATE_ANSWER_PROMPT,
     RESUME_ANALYSIS_PROMPT,
     RESUME_DEEP_DIVE_PROMPT,
-    GENERATE_ADAPTIVE_QUESTION_PROMPT
+    GENERATE_ADAPTIVE_QUESTION_PROMPT,
+    EVALUATE_CLAIM_EVIDENCE_PROMPT
 };

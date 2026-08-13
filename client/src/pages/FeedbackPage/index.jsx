@@ -15,6 +15,8 @@ import {
     MessageSquare
 } from 'lucide-react';
 
+import ResumeRealityCheck from '../../components/ResumeRealityCheck';
+
 const ScoreCard = ({ title, score, icon: Icon, description }) => {
     const isNA = score === 'N/A' || score === null || score === undefined;
     
@@ -127,6 +129,9 @@ const FeedbackPage = () => {
                     <ScoreCard key={idx} title={m.title} score={m.score} icon={m.icon} description={m.desc} />
                 ))}
             </div>
+
+            {/* Resume Reality Check & Evidence Validation */}
+            <ResumeRealityCheck evidenceValidations={feedback?.evidenceReport} />
 
             {/* Code Review & Complexity Analysis Section */}
             {feedback?.codeReview && (

@@ -4,6 +4,7 @@ const { askGroq } = require('./groq.service');
 const { parseAIResponse: parseAIJSON } = require('../utils/prompts.utils');
 const { getCodingProblemById, getPublicProblemDefinition } = require('../constants/codingQuestions');
 const { updateSkillProfileFromInterview } = require('./skill.service');
+const { evaluateInterviewResumeEvidence } = require('./evidenceValidation.service');
 
 // Assuming murf.service will be created, mock its failure safely for now if missing
 let generateAudio;
@@ -688,6 +689,23 @@ const endInterview = async (interviewId, userId) => {
     // NORMALIZE: Ensure frontend gets what it expects
     const finalFeedback = normalizeFeedback(feedbackJson, hasCodingAssessed);
     console.log('[endInterview] Normalized feedback score:', finalFeedback.scores["Overall Performance"]);
+
+    // Phase 5: Evaluate Resume Claim Evidence Validation
+    try {
+        let userResume = null;
+        if (interview.resumeId) {
+            userResume = await Resume.findOne({ _id: interview.resumeId, userId });
+        }
+        if (!userResume) {
+            userResume = await Resume.findOne({ userId, isActive: true }).sort({ createdAt: -1 });
+        }
+        if (userResume) {
+            const evidenceResults = await evaluateInterviewResumeEvidence(interview, userResume);
+            finalFeedback.evidenceReport = evidenceResults;
+        }
+    } catch (evErr) {
+        console.warn('[endInterview] Evidence evaluation warning:', evErr.message);
+    }
 
     // Mark completed safely mapping explicitly mapped state requirements 
     interview.feedback = finalFeedback;

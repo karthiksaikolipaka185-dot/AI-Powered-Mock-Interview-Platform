@@ -65,6 +65,10 @@ const interviewSchema = new mongoose.Schema({
         type: Array,
         default: []
     },
+    evidenceValidations: {
+        type: Array,
+        default: []
+    },
     status: {
         type: String,
         default: 'active',

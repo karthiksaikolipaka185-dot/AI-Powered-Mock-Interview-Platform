@@ -218,10 +218,12 @@ const updateSkillProfileFromInterview = async (userId, interview) => {
                         ? skillData.score
                         : Math.round((0.35 * skillData.score + 0.65 * (skillItem.score || 7)) * 10) / 10;
 
-                    skillItem.score = Math.min(10, Math.max(1, newScore));
-                    skillItem.assessmentCount = (skillItem.assessmentCount || 1) + 1;
-                    skillItem.lastAssessedAt = now;
-                    skillItem.confidence = Math.min(1, Math.round((0.4 + skillItem.assessmentCount * 0.15) * 100) / 100);
+                    let confidenceBoost = 0;
+                    if (Array.isArray(interview.evidenceValidations) && interview.evidenceValidations.length > 0) {
+                        const supportedCount = interview.evidenceValidations.filter(ev => ev.evidenceStatus === 'supported').length;
+                        confidenceBoost = supportedCount * 0.05;
+                    }
+                    skillItem.confidence = Math.min(1, Math.round((0.4 + skillItem.assessmentCount * 0.15 + confidenceBoost) * 100) / 100);
                     skillItem.trend = calculateTrend(skillItem.history);
                     skillsObj[skillName] = skillItem;
                 }
