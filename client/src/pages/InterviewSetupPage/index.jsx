@@ -95,7 +95,7 @@ const InterviewSetupPage = () => {
 
             const difficultyData = DIFFICULTY_OPTS.find(d => d.label === difficulty);
             const totalQuestions = difficultyData?.questions || 5;
-            const interviewData = await startInterview(id, role, resumeText, totalQuestions);
+            const interviewData = await startInterview(id, role, resumeText, totalQuestions, difficulty);
 
             navigate(`/interview/${interviewData.interviewId}`);
         } catch (error) {

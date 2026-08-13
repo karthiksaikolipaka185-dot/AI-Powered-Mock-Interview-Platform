@@ -23,7 +23,10 @@ import {
     Brain,
     Loader2,
     Trophy,
-    ArrowRight
+    ArrowRight,
+    Zap,
+    Flame,
+    Sparkles
 } from 'lucide-react';
 
 const StatusBadge = ({ phase }) => {
@@ -44,6 +47,22 @@ const StatusBadge = ({ phase }) => {
     );
 };
 
+const AdaptiveBadge = ({ difficulty }) => {
+    const config = {
+        Easy: { label: 'Adaptive: Easy', color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30', icon: Zap },
+        Medium: { label: 'Adaptive: Medium', color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30', icon: Brain },
+        Hard: { label: 'Adaptive: Hard', color: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30', icon: Flame }
+    };
+    const active = config[difficulty] || config.Medium;
+    const Icon = active.icon;
+    return (
+        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold border ${active.color} shadow-sm`}>
+            <Icon size={13} />
+            <span>{active.label}</span>
+        </div>
+    );
+};
+
 const InterviewPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -57,6 +76,8 @@ const InterviewPage = () => {
     const [textAnswer, setTextAnswer] = useState('');
     const [activeTab, setActiveTab] = useState('voice');
     const [feedbackReport, setFeedbackReport] = useState(null);
+    const [currentDifficulty, setCurrentDifficulty] = useState('Medium');
+    const [questionCategory, setQuestionCategory] = useState('');
 
     const audioRef = useRef(null);
     const audioUrlRef = useRef(null);
@@ -156,6 +177,9 @@ const InterviewPage = () => {
         const loadInitialData = async () => {
             try {
                 const data = await getInterview(id);
+                if (data.currentDifficulty) setCurrentDifficulty(data.currentDifficulty);
+                else if (data.initialDifficulty) setCurrentDifficulty(data.initialDifficulty);
+                
                 if (data.questions) {
                     setQuestionsList(data.questions);
                     setTotalQuestions(data.questions.length);
@@ -179,6 +203,10 @@ const InterviewPage = () => {
 
     const processAnswerResult = (response) => {
         if (response.audio) setAudioBase64(response.audio);
+        if (response.currentDifficulty) setCurrentDifficulty(response.currentDifficulty);
+        if (response.category) setQuestionCategory(response.category);
+        if (response.questionType === 'coding') setActiveTab('code');
+
         setCurrentQuestionNum(prev => prev + 1);
         if (response.isCompleted) {
             stopAndCleanupAudio();
@@ -272,10 +300,16 @@ const InterviewPage = () => {
 
             {/* Header / Tracker */}
             <div className="flex bg-card p-4 rounded-2xl border border-border-theme items-center justify-between shadow-sm">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 flex-wrap">
                     <StatusBadge phase={phase} />
+                    <AdaptiveBadge difficulty={currentDifficulty} />
+                    {questionCategory && (
+                        <span className="hidden sm:inline-block px-3 py-1 bg-primary-theme/10 text-primary-theme rounded-full text-xs font-bold border border-primary-theme/20">
+                            {questionCategory}
+                        </span>
+                    )}
                     {totalQuestions > 0 && (
-                        <div className="hidden md:flex items-center gap-2">
+                        <div className="hidden md:flex items-center gap-2 ml-2">
                             <span className="text-xs font-bold text-text-secondary uppercase tracking-widest">Progress</span>
                             <div className="flex gap-1">
                                 {[...Array(totalQuestions)].map((_, i) => (

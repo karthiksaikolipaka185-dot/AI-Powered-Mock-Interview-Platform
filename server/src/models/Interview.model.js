@@ -30,6 +30,32 @@ const interviewSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    initialDifficulty: {
+        type: String,
+        default: 'Medium'
+    },
+    currentDifficulty: {
+        type: String,
+        default: 'Medium'
+    },
+    blueprint: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null
+    },
+    performanceTracker: {
+        type: mongoose.Schema.Types.Mixed,
+        default: () => ({
+            strengths: [],
+            weaknesses: [],
+            categoryScores: {},
+            overallAverage: 0,
+            answerCount: 0
+        })
+    },
+    evaluations: {
+        type: Array,
+        default: []
+    },
     status: {
         type: String,
         default: 'active',

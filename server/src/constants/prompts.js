@@ -72,6 +72,78 @@ Based on the following conversation and code submissions, generate constructive 
  ${codeSubmissions}
  `;
 
+const GENERATE_BLUEPRINT_PROMPT = (role, resumeText, difficulty, totalQuestions) => `
+You are an expert lead technical recruiter. Based on the target role "${role}", candidate resume, target difficulty "${difficulty}", and planned question count of ${totalQuestions}, generate a structured adaptive interview blueprint.
+
+Resume Context:
+${resumeText}
+
+Generate a JSON object specifying topic breakdown categories, target weights, initial question plan, and target competencies.
+Format response strictly as valid JSON:
+{
+  "role": "${role}",
+  "initialDifficulty": "${difficulty}",
+  "topics": [
+    { "category": "Behavioral & Resume", "weightPercentage": 15, "plannedCount": 1 },
+    { "category": "Core Architecture & Concepts", "weightPercentage": 35, "plannedCount": 2 },
+    { "category": "Domain Deep Dive", "weightPercentage": 30, "plannedCount": 1 },
+    { "category": "Coding Challenge", "weightPercentage": 20, "plannedCount": 1 }
+  ],
+  "focusAreas": ["string", "string"]
+}
+`;
+
+const EVALUATE_ANSWER_PROMPT = (currentQuestion, userAnswer, role, currentDifficulty) => `
+You are an expert technical interviewer evaluating a candidate's response for the role of ${role} at difficulty level ${currentDifficulty}.
+
+Question Asked:
+"${currentQuestion}"
+
+Candidate's Answer:
+"${userAnswer}"
+
+Evaluate the response objectively. Return strictly valid JSON:
+{
+  "technicalScore": <number 0-10>,
+  "communicationScore": <number 0-10>,
+  "overallScore": <number 0-10>,
+  "strengths": ["short string strength"],
+  "weaknesses": ["short string weakness"],
+  "conceptsMissed": ["concept"],
+  "depthRating": "<Weak|Moderate|Strong|Exceptional>"
+}
+`;
+
+const GENERATE_ADAPTIVE_QUESTION_PROMPT = (role, currentDifficulty, blueprintJson, trackerJson, lastEvalJson, conversationHistory, currentQuestionNum, totalQuestions) => `
+You are an adaptive AI interviewer evaluating a candidate for the role of "${role}".
+Current Interview State:
+- Adaptive Difficulty: ${currentDifficulty}
+- Question Number: ${currentQuestionNum} of ${totalQuestions}
+- Interview Blueprint: ${JSON.stringify(blueprintJson)}
+- Accumulated Performance: ${JSON.stringify(trackerJson)}
+- Last Answer Evaluation: ${JSON.stringify(lastEvalJson)}
+
+Recent Conversation History:
+${conversationHistory}
+
+Task:
+Determine the NEXT question to ask the candidate.
+Rules:
+1. If candidate's last evaluation shows weakness (overallScore < 5.5), target the missing concept or weak area with a follow-up probing question at moderate difficulty.
+2. If candidate's last evaluation was strong (overallScore >= 8.0), advance to a higher-level question or harder topic in the blueprint.
+3. If this is question #${totalQuestions - 1} or near the end and coding has not been covered, output a coding question.
+4. Keep the question crisp, natural, professional, and conversational.
+
+Return ONLY a valid JSON object:
+{
+  "question": "Question text to ask verbally...",
+  "type": "<behavioral|technical|coding|resume>",
+  "category": "Topic category",
+  "recommendedDifficulty": "<Easy|Medium|Hard>",
+  "adaptationReason": "Brief internal explanation of why this question was selected"
+}
+`;
+
 const EVALUATE_CODE_PROMPT = (question, code) => `
 Evaluate the following code submission for the question: "${question}".
 Code:
@@ -84,5 +156,8 @@ module.exports = {
     buildConversationHistory,
     INTERVIEW_GREETING_PROMPT,
     FEEDBACK_PROMPT,
-    EVALUATE_CODE_PROMPT
+    EVALUATE_CODE_PROMPT,
+    GENERATE_BLUEPRINT_PROMPT,
+    EVALUATE_ANSWER_PROMPT,
+    GENERATE_ADAPTIVE_QUESTION_PROMPT
 };

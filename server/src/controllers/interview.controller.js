@@ -7,10 +7,10 @@ const { streamAudio } = require('../services/murf.service');
 const startInterviewController = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { role, resumeText, totalQuestions } = req.body;
+        const { role, resumeText, totalQuestions, difficulty } = req.body;
 
         // Debug Logs
-        console.log("ID:", id);
+        console.log("ID:", id, "Difficulty:", difficulty);
 
         // 1. Validate ObjectId structure natively before database call
         if (!id || !mongoose.Types.ObjectId.isValid(id)) {
@@ -39,7 +39,7 @@ const startInterviewController = async (req, res, next) => {
         const userName = req.user.name || 'Candidate';
 
         // 4. Proceed to AI generation service
-        const interviewSession = await startInterview(id, userId, role, resumeText, userName, totalQuestions || 5);
+        const interviewSession = await startInterview(id, userId, role, resumeText, userName, totalQuestions || 5, difficulty || 'Medium');
         
         return res.status(200).json({
             success: true,

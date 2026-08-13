@@ -16,58 +16,89 @@ const {
     FOLLOW_UP_PROMPT,
     FEEDBACK_PROMPT,
     EVALUATE_CODE_PROMPT,
-    buildConversationHistory
+    buildConversationHistory,
+    GENERATE_BLUEPRINT_PROMPT,
+    EVALUATE_ANSWER_PROMPT,
+    GENERATE_ADAPTIVE_QUESTION_PROMPT
 } = require('../constants/prompts');
 
-const startInterview = async (interviewId, userId, role, resumeText, userName, totalQuestionsRaw) => {
+const startInterview = async (interviewId, userId, role, resumeText, userName, totalQuestionsRaw, difficulty = 'Medium') => {
     try {
         const totalQuestions = parseInt(totalQuestionsRaw) || 5;
-        console.log(`[startInterview] Starting for user: ${userId}, role: ${role}, totalQuestions: ${totalQuestions}`);
-        // 1. Fetch the existing Interview mapping userId context
-        const interview = await Interview.findOne({ _id: interviewId, userId });
-        console.log(`[startInterview] DB search: ${interview ? 'SUCCESS (Found)' : 'FAILED (Not Found)'}`);
+        const targetDifficulty = difficulty || 'Medium';
+        console.log(`[startInterview] Starting adaptive session for user: ${userId}, role: ${role}, level: ${targetDifficulty}, totalQuestions: ${totalQuestions}`);
         
+        // 1. Fetch existing Interview
+        const interview = await Interview.findOne({ _id: interviewId, userId });
         if (!interview) {
             const error = new Error('Interview session context not found or unauthorized');
             error.statusCode = 404;
             throw error;
         }
 
-        // 2. Generate Questions based on role & resume context
-        const questionsPrompt = GENERATE_QUESTIONS_PROMPT(role, resumeText, totalQuestions);
-        console.log('[startInterview] Requesting questions from AI...');
-        
-        let rawAIResponse;
+        // 2. Generate Interview Blueprint via AI
+        let blueprintObj = null;
         try {
-            rawAIResponse = await askGroq(questionsPrompt);
-            console.log('[startInterview] AI Response received successfully.');
-        } catch (aiErr) {
-            console.error('[startInterview] AI Call Failed:', aiErr.message);
-            throw new Error(`AI Engine failed: ${aiErr.message}`);
+            const blueprintPrompt = GENERATE_BLUEPRINT_PROMPT(role, resumeText, targetDifficulty, totalQuestions);
+            const rawBlueprint = await askGroq(blueprintPrompt);
+            blueprintObj = parseAIJSON(rawBlueprint);
+        } catch (bpErr) {
+            console.warn('[startInterview] Blueprint generation fallback triggered:', bpErr.message);
         }
 
-        const parsedQuestions = parseAIJSON(rawAIResponse) || [];
-        console.log(`[startInterview] Successfully parsed ${parsedQuestions.length} questions.`);
+        if (!blueprintObj || !blueprintObj.topics) {
+            blueprintObj = {
+                role,
+                initialDifficulty: targetDifficulty,
+                topics: [
+                    { category: "Behavioral & Resume", weightPercentage: 20, plannedCount: 1 },
+                    { category: "Core Technical Concepts", weightPercentage: 40, plannedCount: 2 },
+                    { category: "Problem Solving & Coding", weightPercentage: 40, plannedCount: 2 }
+                ],
+                focusAreas: ["Core Competencies", "Problem Solving"]
+            };
+        }
 
-        // 3. Add Intro Question mapping behavioral base
+        // 3. Generate initial questions set
+        const questionsPrompt = GENERATE_QUESTIONS_PROMPT(role, resumeText, totalQuestions);
+        let parsedQuestions = [];
+        try {
+            const rawAIResponse = await askGroq(questionsPrompt);
+            parsedQuestions = parseAIJSON(rawAIResponse) || [];
+        } catch (qErr) {
+            console.warn('[startInterview] Initial questions fallback:', qErr.message);
+        }
+
         const questions = [
-            { question: "Tell me about yourself", type: "behavioral" },
+            { question: "Tell me about yourself and your background.", type: "behavioral", category: "Behavioral & Resume", difficulty: targetDifficulty },
             ...parsedQuestions
         ];
 
-        // 4. Generate Greeting utilizing candidate name
+        // 4. Generate Greeting
         const greetingPrompt = INTERVIEW_GREETING_PROMPT(userName, role);
         const greetingText = await askGroq(greetingPrompt);
 
-        // 5. Generate Audio for the greeting (graceful failure)
+        // 5. Generate Audio for greeting
         let audio = '';
         try {
             audio = await generateAudio(greetingText);
         } catch (audioError) {
-            console.warn('Audio generation failed in startInterview:', audioError.message);
+            console.warn('Audio generation skipped in startInterview:', audioError.message);
         }
 
-        // 6. Update the Interview Document defensively
+        // 6. Persist adaptive fields to Interview document
+        interview.role = role;
+        interview.initialDifficulty = targetDifficulty;
+        interview.currentDifficulty = targetDifficulty;
+        interview.blueprint = blueprintObj;
+        interview.performanceTracker = {
+            strengths: [],
+            weaknesses: [],
+            categoryScores: {},
+            overallAverage: 0,
+            answerCount: 0
+        };
+        interview.evaluations = [];
         interview.questions = questions;
         interview.messages = [{ role: 'ai', content: greetingText }];
         interview.lastAudio = audio || '';
@@ -75,12 +106,13 @@ const startInterview = async (interviewId, userId, role, resumeText, userName, t
 
         await interview.save();
 
-        // 7. Return consistent payload checking for field existence
         return {
-            interviewId: interview?._id,
-            questions: interview?.questions || [],
+            interviewId: interview._id,
+            questions: interview.questions,
             greetingText: greetingText || 'Welcome to your interview.',
-            audio: interview?.lastAudio || ''
+            audio: interview.lastAudio || '',
+            blueprint: interview.blueprint,
+            currentDifficulty: interview.currentDifficulty
         };
     } catch (error) {
         console.error('Error starting interview in service:', error);
@@ -89,45 +121,137 @@ const startInterview = async (interviewId, userId, role, resumeText, userName, t
 };
 
 const submitAnswer = async (interviewId, userAnswer) => {
-    // Fetch interview by ID
     const interview = await Interview.findById(interviewId);
     if (!interview) throw new Error('Interview not found');
 
-    // Append user answer
+    // Identify last AI question
+    const aiMessages = interview.messages.filter(m => m.role === 'ai');
+    const lastQuestionText = aiMessages.length > 0 ? aiMessages[aiMessages.length - 1].content : "Initial Question";
+
+    // Append user message
     interview.messages.push({ role: 'user', content: userAnswer });
 
-    // Build conversation history (limit last 20 messages)
-    const conversationHistory = buildConversationHistory(interview.messages);
+    // 1. Evaluate Candidate Answer
+    let evalObj = {
+        technicalScore: 7,
+        communicationScore: 7,
+        overallScore: 7,
+        strengths: ["Clear response"],
+        weaknesses: [],
+        conceptsMissed: [],
+        depthRating: "Moderate"
+    };
 
-    // Generate next question
-    const followUpPrompt = FOLLOW_UP_PROMPT(conversationHistory);
-    const rawNextQuestion = await askGroq(followUpPrompt);
-    const nextQuestion = rawNextQuestion; // text follow-up
-
-    // Generate audio (never break flow if fails)
-    let audio = '';
     try {
-        audio = await generateAudio(nextQuestion);
-    } catch (error) {
-        console.warn('Audio generation failed, safely skipping without breaking flow.');
+        const evalPrompt = EVALUATE_ANSWER_PROMPT(lastQuestionText, userAnswer, interview.role, interview.currentDifficulty);
+        const rawEval = await askGroq(evalPrompt);
+        const parsedEval = parseAIJSON(rawEval);
+        if (parsedEval && typeof parsedEval.overallScore === 'number') {
+            evalObj = parsedEval;
+        }
+    } catch (evalErr) {
+        console.warn('[submitAnswer] Evaluation parsing fallback:', evalErr.message);
     }
 
-    // Append new question to messages
-    interview.messages.push({ role: 'ai', content: nextQuestion });
+    // Record evaluation
+    interview.evaluations.push({
+        question: lastQuestionText,
+        answer: userAnswer,
+        difficulty: interview.currentDifficulty,
+        ...evalObj,
+        timestamp: new Date()
+    });
 
-    // Check if last question: Mark completed safely
-    const aiMessagesCount = interview.messages.filter(m => m.role === 'ai').length;
-    // Assuming greeting is 1, next is 1st question context... we just use questions length + 1
-    const isCompleted = aiMessagesCount > interview.questions.length;
-    
-    // Save updated interview
+    // 2. Update Performance Tracker & Adaptive Difficulty
+    const tracker = interview.performanceTracker || { strengths: [], weaknesses: [], categoryScores: {}, overallAverage: 0, answerCount: 0 };
+    if (evalObj.strengths) {
+        tracker.strengths = Array.from(new Set([...(tracker.strengths || []), ...evalObj.strengths])).slice(0, 10);
+    }
+    if (evalObj.weaknesses) {
+        tracker.weaknesses = Array.from(new Set([...(tracker.weaknesses || []), ...evalObj.weaknesses])).slice(0, 10);
+    }
+
+    const currentAnsCount = (tracker.answerCount || 0) + 1;
+    const oldAvg = tracker.overallAverage || 0;
+    tracker.overallAverage = Math.round(((oldAvg * (currentAnsCount - 1) + (evalObj.overallScore || 7)) / currentAnsCount) * 10) / 10;
+    tracker.answerCount = currentAnsCount;
+    interview.performanceTracker = tracker;
+
+    // Adapt Difficulty: High score => upgrade difficulty; Low score => downgrade difficulty
+    let updatedDifficulty = interview.currentDifficulty || 'Medium';
+    if (evalObj.overallScore >= 8.5) {
+        if (updatedDifficulty === 'Easy') updatedDifficulty = 'Medium';
+        else if (updatedDifficulty === 'Medium') updatedDifficulty = 'Hard';
+    } else if (evalObj.overallScore < 5.0) {
+        if (updatedDifficulty === 'Hard') updatedDifficulty = 'Medium';
+        else if (updatedDifficulty === 'Medium') updatedDifficulty = 'Easy';
+    }
+    interview.currentDifficulty = updatedDifficulty;
+
+    // 3. Generate Next Adaptive Question
+    const conversationHistory = buildConversationHistory(interview.messages);
+    const aiCount = aiMessages.length; // includes greeting
+    const totalQuestions = (interview.questions && interview.questions.length) || 5;
+
+    let nextQuestionText = '';
+    let questionType = 'technical';
+    let questionCategory = 'Core Technical Concepts';
+
+    try {
+        const adaptivePrompt = GENERATE_ADAPTIVE_QUESTION_PROMPT(
+            interview.role,
+            interview.currentDifficulty,
+            interview.blueprint,
+            interview.performanceTracker,
+            evalObj,
+            conversationHistory,
+            aiCount,
+            totalQuestions
+        );
+        const rawNext = await askGroq(adaptivePrompt);
+        const parsedNext = parseAIJSON(rawNext);
+        if (parsedNext && parsedNext.question) {
+            nextQuestionText = parsedNext.question;
+            questionType = parsedNext.type || 'technical';
+            questionCategory = parsedNext.category || 'Domain Deep Dive';
+        }
+    } catch (adaptErr) {
+        console.warn('[submitAnswer] Adaptive question fallback:', adaptErr.message);
+    }
+
+    if (!nextQuestionText) {
+        const followUpPrompt = FOLLOW_UP_PROMPT(conversationHistory);
+        nextQuestionText = await askGroq(followUpPrompt);
+    }
+
+    // 4. Generate audio stream for next question
+    let audio = '';
+    try {
+        audio = await generateAudio(nextQuestionText);
+    } catch (error) {
+        console.warn('Audio generation failed in submitAnswer:', error.message);
+    }
+
+    // Append AI question message and question object
+    interview.messages.push({ role: 'ai', content: nextQuestionText });
+    interview.questions.push({
+        question: nextQuestionText,
+        type: questionType,
+        category: questionCategory,
+        difficulty: updatedDifficulty
+    });
+
+    const isCompleted = interview.messages.filter(m => m.role === 'ai').length > totalQuestions;
     await interview.save();
 
-    // Return payload
     return {
-        nextQuestion,
+        nextQuestion: nextQuestionText,
         audio,
-        isCompleted
+        isCompleted,
+        currentDifficulty: updatedDifficulty,
+        questionType,
+        category: questionCategory,
+        evaluation: evalObj
     };
 };
 

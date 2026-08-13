@@ -33,15 +33,16 @@ export const getResume = async () => {
     return response.data;
 };
 
-export const startInterview = async (interviewId, role, resumeText, totalQuestions) => {
+export const startInterview = async (interviewId, role, resumeText, totalQuestions, difficulty = 'Medium') => {
     if (!interviewId) throw new Error('Cannot start interview without a valid ID. Please re-upload resume.');
     
-    console.log('Starting interview with ID:', interviewId);
+    console.log('Starting interview with ID:', interviewId, 'Difficulty:', difficulty);
 
     const response = await api.post(`/interview/start/${interviewId}`, {
         role,
         resumeText,
-        totalQuestions
+        totalQuestions,
+        difficulty
     });
     
     // Explicitly handle failure based on success flag
