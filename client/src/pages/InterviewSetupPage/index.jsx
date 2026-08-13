@@ -69,11 +69,7 @@ const InterviewSetupPage = () => {
             }
         } catch (error) {
             console.error('Resume upload failed:', error.response?.data || error.message);
-            const msg = error.response?.data?.message || 
-                (error.code === 'ERR_NETWORK' || !error.response 
-                 ? 'Unable to connect to the interview server. Please check your connection.' 
-                 : 'Failed to upload resume. Please try again.');
-            setError(msg);
+            setError(error.response?.data?.message || 'Failed to upload resume. Please try again.');
         } finally {
             setIsUploading(false);
         }

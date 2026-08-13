@@ -1,4 +1,14 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
+
+/**
+ * Configure DNS servers for Node.js to resolve SRV records on Windows networks reliably
+ */
+try {
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (err) {
+    console.warn('[DB Config] DNS setServers warning:', err.message);
+}
 
 /**
  * Connect to MongoDB instance safely and return connection state
@@ -15,7 +25,6 @@ const connectDB = async () => {
     const options = {
         serverSelectionTimeoutMS: 10000,
         socketTimeoutMS: 45000,
-        family: 4
     };
 
     try {

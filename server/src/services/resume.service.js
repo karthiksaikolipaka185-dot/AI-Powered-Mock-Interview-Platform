@@ -3,27 +3,18 @@ const Resume = require('../models/Resume.model');
 
 const parseResumePDF = async (pdfBuffer) => {
     try {
+        // Use classic pdf-parse function version 1.1.1
         console.log(`[parseResumePDF] Processing buffer of size: ${pdfBuffer.length} bytes`);
         const data = await pdfParse(pdfBuffer);
+        
+        // Extracted text is available on the .text property
         const text = data.text ? data.text.trim() : '';
         console.log(`[parseResumePDF] Successfully extracted ${text.length} characters.`);
-        if (text) return text;
+        return text;
     } catch (error) {
-        console.warn('[parseResumePDF] pdf-parse warning, attempting text extraction fallback:', error.message);
+        console.error('Error parsing PDF resume:', error);
+        throw error;
     }
-
-    // Fallback: extract clean text strings from buffer safely
-    try {
-        const rawString = pdfBuffer.toString('utf8');
-        const cleanedText = rawString.replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim();
-        if (cleanedText.length > 10) {
-            return cleanedText;
-        }
-    } catch (err) {
-        console.warn('[parseResumePDF] Raw extraction failed:', err.message);
-    }
-
-    return 'Processed Candidate Resume Context';
 };
 
 const saveResume = async (userId, fileName, extractedText) => {
