@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getHistory } from '../../services/historyService';
 import authService from '../../services/authService';
 import FeedbackModal from '../../components/FeedbackModal';
+import SkillDashboard from '../../components/SkillDashboard';
 import { 
     Plus, 
     BarChart2, 
@@ -163,6 +164,11 @@ const HomePage = () => {
                         color="bg-amber-500" 
                     />
                 </div>
+            </section>
+
+            {/* Phase 3 Candidate Skill Dashboard */}
+            <section>
+                <SkillDashboard />
             </section>
 
             {/* Recent Activity */}

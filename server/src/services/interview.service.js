@@ -2,6 +2,7 @@ const Interview = require('../models/Interview.model');
 const { askGroq } = require('./groq.service');
 const { parseAIResponse: parseAIJSON } = require('../utils/prompts.utils');
 const { getCodingProblemById, getPublicProblemDefinition } = require('../constants/codingQuestions');
+const { updateSkillProfileFromInterview } = require('./skill.service');
 
 // Assuming murf.service will be created, mock its failure safely for now if missing
 let generateAudio;
@@ -277,6 +278,14 @@ const submitAnswer = async (interviewId, userAnswer) => {
     if (questionsAnswered >= targetTotalQuestions) {
         interview.status = 'completed';
         await interview.save();
+        
+        // Trigger Phase 3 candidate skill profile update
+        try {
+            await updateSkillProfileFromInterview(interview.userId, interview);
+        } catch (skillErr) {
+            console.warn('[submitAnswer] Skill profile update warning:', skillErr.message);
+        }
+
         return {
             nextQuestion: null,
             audio: '',
@@ -549,6 +558,14 @@ const submitCode = async (interviewId, code, language, problemId = 'two-sum', us
     if (questionsAnswered >= targetTotalQuestions) {
         interview.status = 'completed';
         await interview.save();
+
+        // Trigger Phase 3 candidate skill profile update
+        try {
+            await updateSkillProfileFromInterview(interview.userId, interview);
+        } catch (skillErr) {
+            console.warn('[submitCode] Skill profile update warning:', skillErr.message);
+        }
+
         return {
             type: 'submit',
             problemId: problem.id,
