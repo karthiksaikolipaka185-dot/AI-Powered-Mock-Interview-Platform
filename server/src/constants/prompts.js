@@ -129,10 +129,11 @@ ${conversationHistory}
 Task:
 Determine the NEXT question to ask the candidate.
 Rules:
-1. If candidate's last evaluation shows weakness (overallScore < 5.5), target the missing concept or weak area with a follow-up probing question at moderate difficulty.
-2. If candidate's last evaluation was strong (overallScore >= 8.0), advance to a higher-level question or harder topic in the blueprint.
-3. If this is question #${totalQuestions - 1} or near the end and coding has not been covered, output a coding question.
-4. Keep the question crisp, natural, professional, and conversational.
+1. Check "blueprint.topics" status ("not_covered", "partially_covered", "covered"). Prioritize topics marked "not_covered" or "partially_covered" over topics marked "covered".
+2. If candidate's last evaluation shows weakness (overallScore < 5.5), target the missing concept or weak area with a follow-up probing question at moderate difficulty.
+3. If candidate's last evaluation was strong (overallScore >= 8.0), advance to an uncovered or higher-level topic in the blueprint.
+4. If this is question #${totalQuestions - 1} or near the end and coding has not been covered, output a coding question.
+5. Do NOT repeat any question present in the conversation history. Keep the question crisp, natural, professional, and conversational.
 
 Return ONLY a valid JSON object:
 {

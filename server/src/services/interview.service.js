@@ -22,6 +22,35 @@ const {
     GENERATE_ADAPTIVE_QUESTION_PROMPT
 } = require('../constants/prompts');
 
+const normalizeString = (str) => {
+    if (!str || typeof str !== 'string') return '';
+    return str
+        .toLowerCase()
+        .replace(/[^\w\s]/gi, '')
+        .trim();
+};
+
+const isDuplicateQuestion = (newQuestionText, askedQuestionsArray) => {
+    if (!newQuestionText || !Array.isArray(askedQuestionsArray)) return false;
+    const normalizedNew = normalizeString(newQuestionText);
+    if (!normalizedNew) return false;
+
+    return askedQuestionsArray.some(asked => {
+        const askedStr = typeof asked === 'string' ? asked : asked?.question;
+        const normalizedAsked = normalizeString(askedStr);
+        if (!normalizedAsked) return false;
+        
+        if (normalizedAsked === normalizedNew) return true;
+        
+        if (normalizedNew.length > 25 && normalizedAsked.length > 25) {
+            if (normalizedNew.includes(normalizedAsked) || normalizedAsked.includes(normalizedNew)) {
+                return true;
+            }
+        }
+        return false;
+    });
+};
+
 const startInterview = async (interviewId, userId, role, resumeText, userName, totalQuestionsRaw, difficulty = 'Medium') => {
     try {
         const totalQuestions = parseInt(totalQuestionsRaw) || 5;
@@ -58,6 +87,15 @@ const startInterview = async (interviewId, userId, role, resumeText, userName, t
                 focusAreas: ["Core Competencies", "Problem Solving"]
             };
         }
+
+        // Ensure topic tracking attributes exist
+        blueprintObj.topics = (blueprintObj.topics || []).map(t => ({
+            category: t.category || "Technical Concepts",
+            weightPercentage: t.weightPercentage || 25,
+            plannedCount: t.plannedCount || 1,
+            questionsAsked: 0,
+            status: "not_covered"
+        }));
 
         // 3. Generate initial questions set
         const questionsPrompt = GENERATE_QUESTIONS_PROMPT(role, resumeText, totalQuestions);
@@ -175,7 +213,46 @@ const submitAnswer = async (interviewId, userAnswer) => {
     const oldAvg = tracker.overallAverage || 0;
     tracker.overallAverage = Math.round(((oldAvg * (currentAnsCount - 1) + (evalObj.overallScore || 7)) / currentAnsCount) * 10) / 10;
     tracker.answerCount = currentAnsCount;
+
+    // Identify category of previous question for categoryScores & blueprint tracking
+    const lastQuestionObj = interview.questions && interview.questions.length > 0 ? interview.questions[interview.questions.length - 1] : null;
+    const activeCategory = (lastQuestionObj && lastQuestionObj.category) || "Core Technical Concepts";
+
+    // Update categoryScores
+    if (!tracker.categoryScores) tracker.categoryScores = {};
+    const oldCatScore = tracker.categoryScores[activeCategory];
+    if (typeof oldCatScore === 'number') {
+        tracker.categoryScores[activeCategory] = Math.round(((oldCatScore + (evalObj.overallScore || 7)) / 2) * 10) / 10;
+    } else {
+        tracker.categoryScores[activeCategory] = Math.round((evalObj.overallScore || 7) * 10) / 10;
+    }
     interview.performanceTracker = tracker;
+    interview.markModified('performanceTracker');
+
+    // Update Blueprint Topic Tracking
+    if (interview.blueprint && Array.isArray(interview.blueprint.topics)) {
+        let matchedTopic = interview.blueprint.topics.find(t => 
+            t.category && (
+                t.category.toLowerCase() === activeCategory.toLowerCase() ||
+                activeCategory.toLowerCase().includes(t.category.toLowerCase()) ||
+                t.category.toLowerCase().includes(activeCategory.toLowerCase())
+            )
+        );
+        if (!matchedTopic && interview.blueprint.topics.length > 0) {
+            matchedTopic = interview.blueprint.topics.find(t => t.status !== 'covered') || interview.blueprint.topics[0];
+        }
+
+        if (matchedTopic) {
+            matchedTopic.questionsAsked = (matchedTopic.questionsAsked || 0) + 1;
+            const planned = matchedTopic.plannedCount || 1;
+            if (matchedTopic.questionsAsked >= planned) {
+                matchedTopic.status = 'covered';
+            } else {
+                matchedTopic.status = 'partially_covered';
+            }
+        }
+        interview.markModified('blueprint');
+    }
 
     // Adapt Difficulty: High score => upgrade difficulty; Low score => downgrade difficulty
     let updatedDifficulty = interview.currentDifficulty || 'Medium';
@@ -222,6 +299,37 @@ const submitAnswer = async (interviewId, userAnswer) => {
     if (!nextQuestionText) {
         const followUpPrompt = FOLLOW_UP_PROMPT(conversationHistory);
         nextQuestionText = await askGroq(followUpPrompt);
+    }
+
+    // Programmatic Duplicate-Question Guard (Issue 5)
+    const askedQuestionsList = (interview.questions || []).map(q => typeof q === 'string' ? q : q.question);
+    let retryCount = 0;
+    const maxRetries = 2;
+
+    while (isDuplicateQuestion(nextQuestionText, askedQuestionsList) && retryCount < maxRetries) {
+        retryCount++;
+        console.warn(`[submitAnswer] Duplicate question detected ("${nextQuestionText}"). Bounded retry ${retryCount}/${maxRetries}...`);
+        try {
+            const retryPrompt = `${GENERATE_ADAPTIVE_QUESTION_PROMPT(interview.role, interview.currentDifficulty, interview.blueprint, interview.performanceTracker, evalObj, conversationHistory, aiCount, totalQuestions)}\n\nCRITICAL: Do NOT generate any question similar to: ${askedQuestionsList.map(q => `"${q}"`).join(', ')}`;
+            const rawRetry = await askGroq(retryPrompt);
+            const parsedRetry = parseAIJSON(rawRetry);
+            if (parsedRetry && parsedRetry.question) {
+                nextQuestionText = parsedRetry.question;
+                questionType = parsedRetry.type || questionType;
+                questionCategory = parsedRetry.category || questionCategory;
+            }
+        } catch (retryErr) {
+            console.warn('[submitAnswer] Duplicate retry error:', retryErr.message);
+        }
+    }
+
+    if (isDuplicateQuestion(nextQuestionText, askedQuestionsList)) {
+        console.warn('[submitAnswer] Duplicate detected after max retries. Applying safe fallback question.');
+        const uncoveredTopicObj = (interview.blueprint?.topics || []).find(t => t.status !== 'covered');
+        const uncoveredTopic = uncoveredTopicObj ? uncoveredTopicObj.category : 'System Design & Architecture';
+        nextQuestionText = `Can you walk me through how you would approach ${uncoveredTopic} in a real-world software project?`;
+        questionCategory = uncoveredTopic;
+        questionType = 'technical';
     }
 
     // 4. Generate audio stream for next question
@@ -335,8 +443,12 @@ const endInterview = async (interviewId, userId) => {
         }
     }
 
+    // Determine whether coding assessment occurred
+    const hasCodingAssessed = (interview.codeSubmissions && interview.codeSubmissions.length > 0) ||
+        (interview.questions && interview.questions.some(q => q.type === 'coding'));
+
     // NORMALIZE: Ensure frontend gets what it expects
-    const finalFeedback = normalizeFeedback(feedbackJson);
+    const finalFeedback = normalizeFeedback(feedbackJson, hasCodingAssessed);
     console.log('[endInterview] Normalized feedback score:', finalFeedback.scores["Overall Performance"]);
 
     // Mark completed safely mapping explicitly mapped state requirements 
@@ -365,14 +477,14 @@ const getInterviewById = async (interviewId, userId) => {
 /**
  * Ensures feedback follows a strict structure and scores are valid numbers
  */
-const normalizeFeedback = (rawFeedback) => {
+const normalizeFeedback = (rawFeedback, hasCodingAssessed = true) => {
     // Default structure
     const normalized = {
         scores: {
             "Communication Skills": 0,
             "Technical Knowledge": 0,
             "Problem Solving": 0,
-            "Code Quality": 0,
+            "Code Quality": hasCodingAssessed ? 0 : "N/A",
             "Overall Performance": 0
         },
         strengths: [],
@@ -397,8 +509,28 @@ const normalizeFeedback = (rawFeedback) => {
         normalized.scores["Communication Skills"] = toScore(rawFeedback.scores["Communication Skills"] || rawFeedback.scores["communication"]);
         normalized.scores["Technical Knowledge"] = toScore(rawFeedback.scores["Technical Knowledge"] || rawFeedback.scores["technical"]);
         normalized.scores["Problem Solving"] = toScore(rawFeedback.scores["Problem Solving"] || rawFeedback.scores["problem_solving"]);
-        normalized.scores["Code Quality"] = toScore(rawFeedback.scores["Code Quality"] || rawFeedback.scores["code_quality"]);
-        normalized.scores["Overall Performance"] = toScore(rawFeedback.scores["Overall Performance"] || rawFeedback.scores["overall"]);
+        
+        if (hasCodingAssessed) {
+            normalized.scores["Code Quality"] = toScore(rawFeedback.scores["Code Quality"] || rawFeedback.scores["code_quality"]);
+        } else {
+            normalized.scores["Code Quality"] = "N/A";
+        }
+
+        if (rawFeedback.scores["Overall Performance"] !== undefined) {
+            normalized.scores["Overall Performance"] = toScore(rawFeedback.scores["Overall Performance"] || rawFeedback.scores["overall"]);
+        } else {
+            // Compute average based on valid numeric scores
+            const valid = [
+                normalized.scores["Communication Skills"],
+                normalized.scores["Technical Knowledge"],
+                normalized.scores["Problem Solving"]
+            ];
+            if (hasCodingAssessed && typeof normalized.scores["Code Quality"] === 'number') {
+                valid.push(normalized.scores["Code Quality"]);
+            }
+            const nonZero = valid.filter(v => typeof v === 'number' && v > 0);
+            normalized.scores["Overall Performance"] = nonZero.length > 0 ? Math.round((nonZero.reduce((a, b) => a + b, 0) / nonZero.length) * 10) / 10 : 7;
+        }
     }
 
     normalized.strengths = Array.isArray(rawFeedback.strengths) ? rawFeedback.strengths : [];

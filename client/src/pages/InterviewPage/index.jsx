@@ -173,6 +173,8 @@ const InterviewPage = () => {
         };
     }, []);
 
+    const [activeQuestionText, setActiveQuestionText] = useState('');
+
     useEffect(() => {
         const loadInitialData = async () => {
             try {
@@ -180,11 +182,13 @@ const InterviewPage = () => {
                 if (data.currentDifficulty) setCurrentDifficulty(data.currentDifficulty);
                 else if (data.initialDifficulty) setCurrentDifficulty(data.initialDifficulty);
                 
-                if (data.questions) {
+                if (data.questions && data.questions.length > 0) {
                     setQuestionsList(data.questions);
                     setTotalQuestions(data.questions.length);
-                    const aiChats = data.messages ? data.messages.filter(m => m.role === 'ai').length : 0;
-                    setCurrentQuestionNum(Math.max(1, Math.min(aiChats, data.questions.length)));
+                    const aiChats = data.messages ? data.messages.filter(m => m.role === 'ai') : [];
+                    const currentAIQuestion = aiChats.length > 0 ? aiChats[aiChats.length - 1].content : data.questions[0]?.question;
+                    setActiveQuestionText(currentAIQuestion || '');
+                    setCurrentQuestionNum(Math.max(1, Math.min(aiChats.length, data.questions.length)));
                 }
                 setPhase('speaking');
                 if (location.state?.audio) {
@@ -206,6 +210,16 @@ const InterviewPage = () => {
         if (response.currentDifficulty) setCurrentDifficulty(response.currentDifficulty);
         if (response.category) setQuestionCategory(response.category);
         if (response.questionType === 'coding') setActiveTab('code');
+
+        if (response.nextQuestion) {
+            setActiveQuestionText(response.nextQuestion);
+            setQuestionsList(prev => [...prev, {
+                question: response.nextQuestion,
+                type: response.questionType || 'technical',
+                category: response.category || 'General',
+                difficulty: response.currentDifficulty
+            }]);
+        }
 
         setCurrentQuestionNum(prev => prev + 1);
         if (response.isCompleted) {
@@ -386,7 +400,12 @@ const InterviewPage = () => {
                                     </div>
                                     <div className="space-y-4">
                                         <h3 className="text-2xl font-extrabold text-text-main">Recruitment AI</h3>
-                                        <div className={`min-h-[100px] flex items-center justify-center ${phase === 'speaking' ? 'animate-in fade-in duration-700' : ''}`}>
+                                        {activeQuestionText && (
+                                            <div className="p-4 rounded-2xl bg-accent-theme border border-border-theme text-text-main text-sm font-semibold max-h-36 overflow-y-auto shadow-inner leading-relaxed text-left">
+                                                "{activeQuestionText}"
+                                            </div>
+                                        )}
+                                        <div className={`min-h-[60px] flex items-center justify-center ${phase === 'speaking' ? 'animate-in fade-in duration-700' : ''}`}>
                                             {phase === 'speaking' ? (
                                                 <div className="flex gap-1.5 items-center">
                                                     {[...Array(5)].map((_, i) => (
@@ -394,7 +413,7 @@ const InterviewPage = () => {
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <p className="text-text-secondary text-lg leading-relaxed font-medium">Ready for your response</p>
+                                                <p className="text-text-secondary text-sm leading-relaxed font-medium">Ready for your response</p>
                                             )}
                                         </div>
                                     </div>

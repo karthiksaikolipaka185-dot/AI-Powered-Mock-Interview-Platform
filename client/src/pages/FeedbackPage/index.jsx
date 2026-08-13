@@ -16,7 +16,10 @@ import {
 } from 'lucide-react';
 
 const ScoreCard = ({ title, score, icon: Icon, description }) => {
+    const isNA = score === 'N/A' || score === null || score === undefined;
+    
     const getScoreColor = (s) => {
+        if (isNA) return 'text-text-secondary bg-accent-theme border border-border-theme';
         if (s >= 8) return 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50';
         if (s >= 6) return 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50';
         return 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50';
@@ -29,7 +32,7 @@ const ScoreCard = ({ title, score, icon: Icon, description }) => {
                     <Icon size={20} />
                 </div>
                 <div className={`px-3 py-1 rounded-full text-sm font-bold ${getScoreColor(score)}`}>
-                    {score}/10
+                    {isNA ? 'N/A' : `${score}/10`}
                 </div>
             </div>
             <div>
@@ -38,8 +41,8 @@ const ScoreCard = ({ title, score, icon: Icon, description }) => {
             </div>
             <div className="w-full bg-border-theme h-1.5 rounded-full overflow-hidden mt-auto">
                 <div 
-                    className={`h-full transition-all duration-1000 ${score >= 8 ? 'bg-emerald-500' : score >= 6 ? 'bg-amber-500' : 'bg-rose-500'}`} 
-                    style={{ width: `${score * 10}%` }} 
+                    className={`h-full transition-all duration-1000 ${isNA ? 'bg-transparent' : score >= 8 ? 'bg-emerald-500' : score >= 6 ? 'bg-amber-500' : 'bg-rose-500'}`} 
+                    style={{ width: isNA ? '0%' : `${(score || 0) * 10}%` }} 
                 />
             </div>
         </div>
