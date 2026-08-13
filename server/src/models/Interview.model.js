@@ -38,6 +38,10 @@ const interviewSchema = new mongoose.Schema({
         type: String,
         default: 'Medium'
     },
+    totalQuestions: {
+        type: Number,
+        default: 5
+    },
     blueprint: {
         type: mongoose.Schema.Types.Mixed,
         default: null

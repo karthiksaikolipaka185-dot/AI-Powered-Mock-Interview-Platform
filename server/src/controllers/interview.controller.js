@@ -100,11 +100,24 @@ const submitVoiceAnswer = async (req, res, next) => {
     }
 };
 
+const runCodeController = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { code, language, problemId } = req.body;
+        const userId = req.user?.userId || req.user?._id || req.user?.id;
+        const result = await runCode(id, code, language, problemId, userId);
+        return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+};
+
 const submitCodeController = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { code, language } = req.body;
-        const result = await submitCode(id, code, language);
+        const { code, language, problemId } = req.body;
+        const userId = req.user?.userId || req.user?._id || req.user?.id;
+        const result = await submitCode(id, code, language, problemId, userId);
         return res.status(200).json({ success: true, data: result });
     } catch (error) {
         next(error);
@@ -171,6 +184,7 @@ module.exports = {
     startInterview: startInterviewController,
     submitTextAnswer,
     submitVoiceAnswer,
+    runCode: runCodeController,
     submitCode: submitCodeController,
     endInterview: endInterviewController,
     getInterview,

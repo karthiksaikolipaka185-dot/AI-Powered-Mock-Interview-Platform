@@ -4,6 +4,7 @@ import {
     getInterview, 
     submitTextAnswer, 
     transcribeAudio, 
+    runCode,
     submitCode, 
     endInterview 
 } from '../../services/interviewService';
@@ -78,6 +79,11 @@ const InterviewPage = () => {
     const [feedbackReport, setFeedbackReport] = useState(null);
     const [currentDifficulty, setCurrentDifficulty] = useState('Medium');
     const [questionCategory, setQuestionCategory] = useState('');
+    const [activeQuestionText, setActiveQuestionText] = useState('');
+
+    const [isRunningCode, setIsRunningCode] = useState(false);
+    const [isSubmittingCode, setIsSubmittingCode] = useState(false);
+    const [codeExecutionResult, setCodeExecutionResult] = useState(null);
 
     const audioRef = useRef(null);
     const audioUrlRef = useRef(null);
@@ -173,8 +179,6 @@ const InterviewPage = () => {
         };
     }, []);
 
-    const [activeQuestionText, setActiveQuestionText] = useState('');
-
     useEffect(() => {
         const loadInitialData = async () => {
             try {
@@ -203,13 +207,31 @@ const InterviewPage = () => {
         if (id) loadInitialData();
     }, [id, location.state]);
 
+    const [activeQuestionProblem, setActiveQuestionProblem] = useState(null);
+
     const currentQuestion = questionsList[currentQuestionNum - 1] || null;
 
     const processAnswerResult = (response) => {
+        if (response.isCompleted) {
+            stopAndCleanupAudio();
+            setPhase('farewell');
+            return;
+        }
+
         if (response.audio) setAudioBase64(response.audio);
         if (response.currentDifficulty) setCurrentDifficulty(response.currentDifficulty);
         if (response.category) setQuestionCategory(response.category);
-        if (response.questionType === 'coding') setActiveTab('code');
+        if (response.totalQuestions) setTotalQuestions(response.totalQuestions);
+
+        if (response.problem) {
+            setActiveQuestionProblem(response.problem);
+        } else {
+            setActiveQuestionProblem(null);
+        }
+
+        if (response.questionType === 'coding') {
+            setActiveTab('code');
+        }
 
         if (response.nextQuestion) {
             setActiveQuestionText(response.nextQuestion);
@@ -217,17 +239,13 @@ const InterviewPage = () => {
                 question: response.nextQuestion,
                 type: response.questionType || 'technical',
                 category: response.category || 'General',
-                difficulty: response.currentDifficulty
+                difficulty: response.currentDifficulty,
+                problem: response.problem || null
             }]);
+            setCurrentQuestionNum(prev => prev + 1);
         }
 
-        setCurrentQuestionNum(prev => prev + 1);
-        if (response.isCompleted) {
-            stopAndCleanupAudio();
-            setPhase('farewell');
-        } else {
-            setPhase('speaking');
-        }
+        setPhase('speaking');
     };
 
     const handleVoiceSubmit = async (audioBlob) => {
@@ -274,14 +292,32 @@ const InterviewPage = () => {
         }
     };
 
+    const handleCodeRun = async (code, language) => {
+        try {
+            setIsRunningCode(true);
+            const result = await runCode(id, code, language, 'two-sum');
+            setCodeExecutionResult(result);
+        } catch (error) {
+            console.error('Code run failed:', error);
+            alert('Code execution failed. Please check your network connection.');
+        } finally {
+            setIsRunningCode(false);
+        }
+    };
+
     const handleCodeSubmit = async (code, language) => {
         try {
+            setIsSubmittingCode(true);
             stopAndCleanupAudio();
             setPhase('thinking');
-            const response = await submitCode(id, code, language);
+            const response = await submitCode(id, code, language, 'two-sum');
+            setCodeExecutionResult(response);
             processAnswerResult(response);
         } catch (error) {
+            console.error('Code submission failed:', error);
             setPhase('listening');
+        } finally {
+            setIsSubmittingCode(false);
         }
     };
 
@@ -388,41 +424,98 @@ const InterviewPage = () => {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-8 h-full">
-                        {/* Left: AI Column */}
+                        {/* Left: AI Column / Coding Problem Statement Card */}
                         <div className="flex flex-col gap-6">
-                            <div className="flex-1 bg-card rounded-3xl border border-border-theme p-8 flex flex-col items-center justify-center text-center relative card-shadow group overflow-hidden">
-                                <div className="absolute top-0 right-0 p-8 text-text-secondary/5">
-                                    <Bot size={180} className="stroke-[0.5]" />
-                                </div>
-                                <div className="relative z-10 space-y-8 max-w-md">
-                                    <div className={`w-24 h-24 rounded-3xl bg-primary-theme shadow-2xl flex items-center justify-center mx-auto transition-transform duration-500 ${phase === 'speaking' ? 'scale-110' : ''}`}>
-                                        <Bot size={48} className="text-white" />
+                            {activeQuestionProblem ? (
+                                <div className="flex-1 bg-card rounded-3xl border border-border-theme p-6 flex flex-col card-shadow overflow-y-auto text-left space-y-4 max-h-[calc(100vh-180px)]">
+                                    <div className="flex items-center justify-between border-b border-border-theme pb-3">
+                                        <div className="flex items-center gap-2">
+                                            <Code size={20} className="text-primary-theme" />
+                                            <h3 className="text-xl font-extrabold text-text-main">{activeQuestionProblem.title || 'Coding Challenge'}</h3>
+                                        </div>
+                                        <span className="px-3 py-1 bg-amber-500/10 text-amber-500 text-xs font-extrabold rounded-full border border-amber-500/20">
+                                            {activeQuestionProblem.difficulty || 'Easy'}
+                                        </span>
                                     </div>
-                                    <div className="space-y-4">
-                                        <h3 className="text-2xl font-extrabold text-text-main">Recruitment AI</h3>
-                                        {activeQuestionText && (
-                                            <div className="p-4 rounded-2xl bg-accent-theme border border-border-theme text-text-main text-sm font-semibold max-h-36 overflow-y-auto shadow-inner leading-relaxed text-left">
-                                                "{activeQuestionText}"
-                                            </div>
-                                        )}
-                                        <div className={`min-h-[60px] flex items-center justify-center ${phase === 'speaking' ? 'animate-in fade-in duration-700' : ''}`}>
-                                            {phase === 'speaking' ? (
-                                                <div className="flex gap-1.5 items-center">
-                                                    {[...Array(5)].map((_, i) => (
-                                                        <div key={i} className={`w-1.5 bg-primary-theme rounded-full animate-bounce [animation-delay:${i * 0.1}s]`} style={{ height: `${Math.random() * 40 + 20}px` }} />
-                                                    ))}
+                                    
+                                    <div>
+                                        <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary mb-1">Problem Statement</h4>
+                                        <p className="text-sm text-text-main leading-relaxed font-medium">{activeQuestionProblem.description}</p>
+                                    </div>
+
+                                    {activeQuestionProblem.inputFormat && (
+                                        <div>
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary mb-1">Input Format</h4>
+                                            <p className="text-xs text-text-secondary bg-accent-theme p-2 rounded-xl border border-border-theme font-mono">{activeQuestionProblem.inputFormat}</p>
+                                        </div>
+                                    )}
+
+                                    {activeQuestionProblem.outputFormat && (
+                                        <div>
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary mb-1">Output Format</h4>
+                                            <p className="text-xs text-text-secondary bg-accent-theme p-2 rounded-xl border border-border-theme font-mono">{activeQuestionProblem.outputFormat}</p>
+                                        </div>
+                                    )}
+
+                                    {activeQuestionProblem.publicTestCases && activeQuestionProblem.publicTestCases.length > 0 && (
+                                        <div className="space-y-2">
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary">Examples</h4>
+                                            {activeQuestionProblem.publicTestCases.map((tc, idx) => (
+                                                <div key={idx} className="bg-accent-theme p-3 rounded-xl border border-border-theme text-xs space-y-1">
+                                                    <div className="font-bold text-text-main">Example {idx + 1}:</div>
+                                                    <div><span className="text-text-secondary">Input:</span> <code className="text-primary-theme font-mono">{JSON.stringify(tc.input)}</code></div>
+                                                    <div><span className="text-text-secondary">Expected Output:</span> <code className="text-emerald-500 font-mono">{JSON.stringify(tc.expectedOutput)}</code></div>
                                                 </div>
-                                            ) : (
-                                                <p className="text-text-secondary text-sm leading-relaxed font-medium">Ready for your response</p>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {activeQuestionProblem.constraints && activeQuestionProblem.constraints.length > 0 && (
+                                        <div>
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary mb-1">Constraints</h4>
+                                            <ul className="list-disc list-inside text-xs text-text-secondary space-y-0.5 font-mono">
+                                                {activeQuestionProblem.constraints.map((c, idx) => (
+                                                    <li key={idx}>{c}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex-1 bg-card rounded-3xl border border-border-theme p-8 flex flex-col items-center justify-center text-center relative card-shadow group overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-8 text-text-secondary/5">
+                                        <Bot size={180} className="stroke-[0.5]" />
+                                    </div>
+                                    <div className="relative z-10 space-y-8 max-w-md">
+                                        <div className={`w-24 h-24 rounded-3xl bg-primary-theme shadow-2xl flex items-center justify-center mx-auto transition-transform duration-500 ${phase === 'speaking' ? 'scale-110' : ''}`}>
+                                            <Bot size={48} className="text-white" />
+                                        </div>
+                                        <div className="space-y-4">
+                                            <h3 className="text-2xl font-extrabold text-text-main">Recruitment AI</h3>
+                                            {activeQuestionText && (
+                                                <div className="p-4 rounded-2xl bg-accent-theme border border-border-theme text-text-main text-sm font-semibold max-h-36 overflow-y-auto shadow-inner leading-relaxed text-left">
+                                                    "{activeQuestionText}"
+                                                </div>
                                             )}
+                                            <div className={`min-h-[60px] flex items-center justify-center ${phase === 'speaking' ? 'animate-in fade-in duration-700' : ''}`}>
+                                                {phase === 'speaking' ? (
+                                                    <div className="flex gap-1.5 items-center">
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <div key={i} className={`w-1.5 bg-primary-theme rounded-full animate-bounce [animation-delay:${i * 0.1}s]`} style={{ height: `${Math.random() * 40 + 20}px` }} />
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-text-secondary text-sm leading-relaxed font-medium">Ready for your response</p>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
+                                    <div className="absolute bottom-6 left-6 flex items-center gap-2 text-xs font-bold text-text-secondary bg-accent-theme px-3 py-1.5 rounded-full border border-border-theme uppercase tracking-widest">
+                                        <Volume2 size={12} />
+                                        Spatial Audio Active
+                                    </div>
                                 </div>
-                                <div className="absolute bottom-6 left-6 flex items-center gap-2 text-xs font-bold text-text-secondary bg-accent-theme px-3 py-1.5 rounded-full border border-border-theme uppercase tracking-widest">
-                                    <Volume2 size={12} />
-                                    Spatial Audio Active
-                                </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Right: Candidate Column */}
@@ -489,13 +582,21 @@ const InterviewPage = () => {
 
                                     {activeTab === 'code' && (
                                         <div className="flex-1 flex flex-col animate-in fade-in duration-500 overflow-hidden">
-                                            <div className="flex-1 min-h-[300px]">
-                                                <CodeEditor onSubmit={handleCodeSubmit} />
+                                            <div className="flex-1 min-h-[350px]">
+                                                <CodeEditor 
+                                                    interviewId={id}
+                                                    problemId="two-sum"
+                                                    onRun={handleCodeRun}
+                                                    onSubmit={handleCodeSubmit} 
+                                                    isRunning={isRunningCode}
+                                                    isSubmitting={isSubmittingCode}
+                                                    executionResult={codeExecutionResult}
+                                                />
                                             </div>
                                             <div className="mt-4 p-4 bg-accent-theme rounded-xl border border-border-theme flex items-start gap-3">
                                                 <Info size={18} className="text-primary-theme shrink-0 mt-0.5" />
                                                 <p className="text-xs text-text-secondary font-medium leading-relaxed">
-                                                    Use this environment for technical solutions. The AI will evaluate your syntax, logic, and optimization strategies.
+                                                    Use the Monaco Code Playground to implement your solution in Python, JavaScript, Java, or C++. Click <strong>Run Code</strong> to test against public examples, and <strong>Submit Solution</strong> to evaluate public &amp; hidden test cases.
                                                 </p>
                                             </div>
                                         </div>

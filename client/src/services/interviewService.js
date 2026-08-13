@@ -83,8 +83,13 @@ export const submitVoiceAnswer = async (interviewId, audioBlob) => {
     return response.data.data !== undefined ? response.data.data : response.data;
 };
 
-export const submitCode = async (interviewId, code, language) => {
-    const response = await api.post(`/interview/${interviewId}/code`, { code, language });
+export const runCode = async (interviewId, code, language, problemId = 'two-sum') => {
+    const response = await api.post(`/interview/${interviewId}/code/run`, { code, language, problemId });
+    return response.data.data !== undefined ? response.data.data : response.data;
+};
+
+export const submitCode = async (interviewId, code, language, problemId = 'two-sum') => {
+    const response = await api.post(`/interview/${interviewId}/code/submit`, { code, language, problemId });
     return response.data.data !== undefined ? response.data.data : response.data;
 };
 
@@ -106,6 +111,7 @@ export default {
     submitTextAnswer,
     transcribeAudio,
     submitVoiceAnswer,
+    runCode,
     submitCode,
     endInterview,
     getInterview

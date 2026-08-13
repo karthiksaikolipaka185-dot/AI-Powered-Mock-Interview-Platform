@@ -5,6 +5,7 @@ const {
     startInterview,
     submitTextAnswer,
     submitVoiceAnswer,
+    runCode,
     submitCode,
     endInterview,
     getInterview,
@@ -34,13 +35,17 @@ router.post('/:id/answer', submitTextAnswer);
 // Use uploadAudio for 'file' field parsing
 router.post('/:id/voice-answer', uploadAudio, submitVoiceAnswer);
 
-// 5. POST /:id/code
-router.post('/:id/code', submitCode);
+// 5. POST /:id/code/run (Run code against public test cases)
+router.post('/:id/code/run', runCode);
 
-// 6. POST /:id/end
+// 6. POST /:id/code/submit (Submit code against public + hidden test cases)
+router.post('/:id/code/submit', submitCode);
+router.post('/:id/code', submitCode); // Fallback mapping for legacy endpoint
+
+// 7. POST /:id/end
 router.post('/:id/end', endInterview);
 
-// 7. GET /:id
+// 8. GET /:id
 router.get('/:id', getInterview);
 
 module.exports = router;

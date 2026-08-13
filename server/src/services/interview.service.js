@@ -1,6 +1,7 @@
 const Interview = require('../models/Interview.model');
 const { askGroq } = require('./groq.service');
 const { parseAIResponse: parseAIJSON } = require('../utils/prompts.utils');
+const { getCodingProblemById, getPublicProblemDefinition } = require('../constants/codingQuestions');
 
 // Assuming murf.service will be created, mock its failure safely for now if missing
 let generateAudio;
@@ -53,8 +54,9 @@ const isDuplicateQuestion = (newQuestionText, askedQuestionsArray) => {
 
 const startInterview = async (interviewId, userId, role, resumeText, userName, totalQuestionsRaw, difficulty = 'Medium') => {
     try {
-        const totalQuestions = parseInt(totalQuestionsRaw) || 5;
         const targetDifficulty = difficulty || 'Medium';
+        // Enforce fixed Total Questions contract: Easy = 5, Medium = 10, Hard = 15
+        const totalQuestions = targetDifficulty === 'Easy' ? 5 : (targetDifficulty === 'Hard' ? 15 : 10);
         console.log(`[startInterview] Starting adaptive session for user: ${userId}, role: ${role}, level: ${targetDifficulty}, totalQuestions: ${totalQuestions}`);
         
         // 1. Fetch existing Interview
@@ -128,6 +130,7 @@ const startInterview = async (interviewId, userId, role, resumeText, userName, t
         interview.role = role;
         interview.initialDifficulty = targetDifficulty;
         interview.currentDifficulty = targetDifficulty;
+        interview.totalQuestions = totalQuestions;
         interview.blueprint = blueprintObj;
         interview.performanceTracker = {
             strengths: [],
@@ -150,7 +153,8 @@ const startInterview = async (interviewId, userId, role, resumeText, userName, t
             greetingText: greetingText || 'Welcome to your interview.',
             audio: interview.lastAudio || '',
             blueprint: interview.blueprint,
-            currentDifficulty: interview.currentDifficulty
+            currentDifficulty: interview.currentDifficulty,
+            totalQuestions: interview.totalQuestions
         };
     } catch (error) {
         console.error('Error starting interview in service:', error);
@@ -265,43 +269,81 @@ const submitAnswer = async (interviewId, userAnswer) => {
     }
     interview.currentDifficulty = updatedDifficulty;
 
-    // 3. Generate Next Adaptive Question
+    // Determine fixed total questions from stored initial difficulty or default
+    const targetTotalQuestions = interview.totalQuestions || (interview.initialDifficulty === 'Easy' ? 5 : (interview.initialDifficulty === 'Hard' ? 15 : 10));
+    const questionsAnswered = (interview.evaluations ? interview.evaluations.length : 0);
+
+    // CRITICAL COMPLETION CHECK: If questionsAnswered >= targetTotalQuestions, END INTERVIEW IMMEDIATELY.
+    if (questionsAnswered >= targetTotalQuestions) {
+        interview.status = 'completed';
+        await interview.save();
+        return {
+            nextQuestion: null,
+            audio: '',
+            isCompleted: true,
+            currentDifficulty: updatedDifficulty,
+            totalQuestions: targetTotalQuestions,
+            evaluation: evalObj
+        };
+    }
+
+    // 3. Generate Next Adaptive Question (Only when questionsAnswered < targetTotalQuestions)
     const conversationHistory = buildConversationHistory(interview.messages);
     const aiCount = aiMessages.length; // includes greeting
-    const totalQuestions = (interview.questions && interview.questions.length) || 5;
 
     let nextQuestionText = '';
     let questionType = 'technical';
     let questionCategory = 'Core Technical Concepts';
+    let codingProblem = null;
 
-    try {
-        const adaptivePrompt = GENERATE_ADAPTIVE_QUESTION_PROMPT(
-            interview.role,
-            interview.currentDifficulty,
-            interview.blueprint,
-            interview.performanceTracker,
-            evalObj,
-            conversationHistory,
-            aiCount,
-            totalQuestions
-        );
-        const rawNext = await askGroq(adaptivePrompt);
-        const parsedNext = parseAIJSON(rawNext);
-        if (parsedNext && parsedNext.question) {
-            nextQuestionText = parsedNext.question;
-            questionType = parsedNext.type || 'technical';
-            questionCategory = parsedNext.category || 'Domain Deep Dive';
+    // Check if next question slot should be a coding problem (e.g. Q3 in 5-q Easy, Q5 in 10-q Medium)
+    const isCodingSlot = (targetTotalQuestions === 5 && questionsAnswered === 2) || 
+                         (targetTotalQuestions === 10 && questionsAnswered === 4) ||
+                         (targetTotalQuestions === 15 && questionsAnswered === 7);
+
+    if (isCodingSlot) {
+        const problemObj = getCodingProblemById('two-sum');
+        codingProblem = getPublicProblemDefinition(problemObj);
+        nextQuestionText = `Coding Challenge: ${problemObj.title}\n\n${problemObj.description}`;
+        questionType = 'coding';
+        questionCategory = 'Problem Solving & Coding';
+    } else {
+        try {
+            const adaptivePrompt = GENERATE_ADAPTIVE_QUESTION_PROMPT(
+                interview.role,
+                interview.currentDifficulty,
+                interview.blueprint,
+                interview.performanceTracker,
+                evalObj,
+                conversationHistory,
+                questionsAnswered + 1,
+                targetTotalQuestions
+            );
+            const rawNext = await askGroq(adaptivePrompt);
+            const parsedNext = parseAIJSON(rawNext);
+            if (parsedNext && parsedNext.question) {
+                nextQuestionText = parsedNext.question;
+                questionType = parsedNext.type || 'technical';
+                questionCategory = parsedNext.category || 'Domain Deep Dive';
+            }
+        } catch (adaptErr) {
+            console.warn('[submitAnswer] Adaptive question fallback:', adaptErr.message);
         }
-    } catch (adaptErr) {
-        console.warn('[submitAnswer] Adaptive question fallback:', adaptErr.message);
+
+        if (!nextQuestionText) {
+            const followUpPrompt = FOLLOW_UP_PROMPT(conversationHistory);
+            nextQuestionText = await askGroq(followUpPrompt);
+        }
+
+        if (questionType === 'coding') {
+            const problemObj = getCodingProblemById('two-sum');
+            codingProblem = getPublicProblemDefinition(problemObj);
+            nextQuestionText = `Coding Challenge: ${problemObj.title}\n\n${problemObj.description}`;
+            questionCategory = 'Problem Solving & Coding';
+        }
     }
 
-    if (!nextQuestionText) {
-        const followUpPrompt = FOLLOW_UP_PROMPT(conversationHistory);
-        nextQuestionText = await askGroq(followUpPrompt);
-    }
-
-    // Programmatic Duplicate-Question Guard (Issue 5)
+    // Programmatic Duplicate-Question Guard
     const askedQuestionsList = (interview.questions || []).map(q => typeof q === 'string' ? q : q.question);
     let retryCount = 0;
     const maxRetries = 2;
@@ -310,7 +352,7 @@ const submitAnswer = async (interviewId, userAnswer) => {
         retryCount++;
         console.warn(`[submitAnswer] Duplicate question detected ("${nextQuestionText}"). Bounded retry ${retryCount}/${maxRetries}...`);
         try {
-            const retryPrompt = `${GENERATE_ADAPTIVE_QUESTION_PROMPT(interview.role, interview.currentDifficulty, interview.blueprint, interview.performanceTracker, evalObj, conversationHistory, aiCount, totalQuestions)}\n\nCRITICAL: Do NOT generate any question similar to: ${askedQuestionsList.map(q => `"${q}"`).join(', ')}`;
+            const retryPrompt = `${GENERATE_ADAPTIVE_QUESTION_PROMPT(interview.role, interview.currentDifficulty, interview.blueprint, interview.performanceTracker, evalObj, conversationHistory, questionsAnswered + 1, targetTotalQuestions)}\n\nCRITICAL: Do NOT generate any question similar to: ${askedQuestionsList.map(q => `"${q}"`).join(', ')}`;
             const rawRetry = await askGroq(retryPrompt);
             const parsedRetry = parseAIJSON(rawRetry);
             if (parsedRetry && parsedRetry.question) {
@@ -323,7 +365,7 @@ const submitAnswer = async (interviewId, userAnswer) => {
         }
     }
 
-    if (isDuplicateQuestion(nextQuestionText, askedQuestionsList)) {
+    if (isDuplicateQuestion(nextQuestionText, askedQuestionsList) && questionType !== 'coding') {
         console.warn('[submitAnswer] Duplicate detected after max retries. Applying safe fallback question.');
         const uncoveredTopicObj = (interview.blueprint?.topics || []).find(t => t.status !== 'covered');
         const uncoveredTopic = uncoveredTopicObj ? uncoveredTopicObj.category : 'System Design & Architecture';
@@ -335,7 +377,10 @@ const submitAnswer = async (interviewId, userAnswer) => {
     // 4. Generate audio stream for next question
     let audio = '';
     try {
-        audio = await generateAudio(nextQuestionText);
+        const audioSpeechText = questionType === 'coding'
+            ? "You'll now solve the following coding problem. Read the problem statement on your screen and implement your solution in the editor."
+            : nextQuestionText;
+        audio = await generateAudio(audioSpeechText);
     } catch (error) {
         console.warn('Audio generation failed in submitAnswer:', error.message);
     }
@@ -349,35 +394,186 @@ const submitAnswer = async (interviewId, userAnswer) => {
         difficulty: updatedDifficulty
     });
 
-    const isCompleted = interview.messages.filter(m => m.role === 'ai').length > totalQuestions;
     await interview.save();
 
     return {
         nextQuestion: nextQuestionText,
         audio,
-        isCompleted,
+        isCompleted: false,
         currentDifficulty: updatedDifficulty,
+        totalQuestions: targetTotalQuestions,
         questionType,
         category: questionCategory,
+        problem: codingProblem,
         evaluation: evalObj
     };
 };
 
-const submitCode = async (interviewId, code, language) => {
-    // Fetch interview
-    const interview = await Interview.findById(interviewId);
-    if (!interview) throw new Error('Interview not found');
+const { runTestCases } = require('./execution.service');
 
-    // Store submission
-    interview.codeSubmissions.push({ code, language, timestamp: new Date() });
+const runCode = async (interviewId, code, language, problemId = 'two-sum', userId = null) => {
+    const query = userId ? { _id: interviewId, userId } : { _id: interviewId };
+    const interview = await Interview.findOne(query);
+    if (!interview) {
+        const error = new Error('Interview not found');
+        error.statusCode = 404;
+        throw error;
+    }
 
-    // Evaluate code
-    const codingQuestion = interview.questions.find(q => q.type === 'coding')?.question || 'Coding logic problem';
-    const evaluationPrompt = EVALUATE_CODE_PROMPT(codingQuestion, code);
-    const evaluationResultRaw = await askGroq(evaluationPrompt);
+    const problem = getCodingProblemById(problemId);
+    const publicResults = await runTestCases(code, language, problem.publicTestCases || []);
 
-    // Generate follow-up context bridging submission
-    interview.messages.push({ role: 'user', content: `[Code Submission]: ${code}\n[Language]: ${language}\n[Evaluator Note]: ${evaluationResultRaw}` });
+    if (publicResults.hasExecutionFailure) {
+        return {
+            success: false,
+            isExecutionFailure: true,
+            message: 'Code execution service temporarily unavailable. Please try again.'
+        };
+    }
+
+    return {
+        success: true,
+        type: 'run',
+        problemId: problem.id,
+        language,
+        publicResults
+    };
+};
+
+const submitCode = async (interviewId, code, language, problemId = 'two-sum', userId = null) => {
+    // Fetch interview with strict ownership authorization
+    const query = userId ? { _id: interviewId, userId } : { _id: interviewId };
+    const interview = await Interview.findOne(query);
+    if (!interview) {
+        const error = new Error('Interview not found');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    const problem = getCodingProblemById(problemId);
+    
+    // 1. Execute against public test cases
+    const publicResults = await runTestCases(code, language, problem.publicTestCases || []);
+
+    // 2. Execute against hidden test cases (inputs/outputs remain server-side!)
+    const hiddenResults = await runTestCases(code, language, problem.hiddenTestCases || []);
+
+    // Graceful Failure Guard: If execution service itself failed, do NOT save or advance interview
+    if (publicResults.hasExecutionFailure || hiddenResults.hasExecutionFailure) {
+        return {
+            success: false,
+            isExecutionFailure: true,
+            message: 'Code execution service temporarily unavailable. Please try again.'
+        };
+    }
+
+    // 3. Compute execution-derived correctness score
+    const totalTests = publicResults.totalCount + hiddenResults.totalCount;
+    const totalPassed = publicResults.passedCount + hiddenResults.passedCount;
+    const executionPassRate = totalTests > 0 ? (totalPassed / totalTests) : 1;
+    const correctnessScore = Math.round(executionPassRate * 10 * 10) / 10;
+
+    // 4. Evaluate code qualitatively via Groq AI
+    const codingQuestion = problem.title || 'Coding Challenge';
+    let aiEvaluationNote = 'Code execution evaluation completed.';
+    try {
+        const evaluationPrompt = EVALUATE_CODE_PROMPT(codingQuestion, code);
+        aiEvaluationNote = await askGroq(evaluationPrompt);
+    } catch (evalErr) {
+        console.warn('[submitCode] AI code evaluation fallback:', evalErr.message);
+    }
+
+    // Record submission to interview document
+    interview.codeSubmissions.push({
+        problemId: problem.id,
+        code,
+        language,
+        publicPassed: publicResults.passedCount,
+        publicTotal: publicResults.totalCount,
+        hiddenPassed: hiddenResults.passedCount,
+        hiddenTotal: hiddenResults.totalCount,
+        correctnessScore,
+        aiEvaluationNote,
+        timestamp: new Date()
+    });
+
+    // 5. Update Phase 1 Performance Tracker & Adaptive Difficulty
+    const tracker = interview.performanceTracker || { strengths: [], weaknesses: [], categoryScores: {}, overallAverage: 0, answerCount: 0 };
+    if (!tracker.categoryScores) tracker.categoryScores = {};
+    
+    const activeCategory = "Problem Solving & Coding";
+    const oldCatScore = tracker.categoryScores[activeCategory];
+    tracker.categoryScores[activeCategory] = typeof oldCatScore === 'number' 
+        ? Math.round(((oldCatScore + correctnessScore) / 2) * 10) / 10 
+        : correctnessScore;
+
+    const currentAnsCount = (tracker.answerCount || 0) + 1;
+    const oldAvg = tracker.overallAverage || 0;
+    tracker.overallAverage = Math.round(((oldAvg * (currentAnsCount - 1) + correctnessScore) / currentAnsCount) * 10) / 10;
+    tracker.answerCount = currentAnsCount;
+
+    if (correctnessScore >= 8.0) {
+        tracker.strengths = Array.from(new Set([...(tracker.strengths || []), `Passed ${totalPassed}/${totalTests} code test cases for ${problem.title}`])).slice(0, 10);
+    } else {
+        tracker.weaknesses = Array.from(new Set([...(tracker.weaknesses || []), `Failed ${totalTests - totalPassed} test cases in ${problem.title}`])).slice(0, 10);
+    }
+    
+    interview.performanceTracker = tracker;
+    interview.markModified('performanceTracker');
+
+    // Record evaluation entry so evaluations count reflects coding question
+    interview.evaluations.push({
+        question: problem.title,
+        answer: `[Code Submission - ${language}]: Passed ${totalPassed}/${totalTests} test cases.`,
+        difficulty: interview.currentDifficulty,
+        overallScore: correctnessScore,
+        technicalScore: correctnessScore,
+        timestamp: new Date()
+    });
+
+    // Adapt Difficulty
+    let updatedDifficulty = interview.currentDifficulty || 'Medium';
+    if (correctnessScore >= 8.5) {
+        if (updatedDifficulty === 'Easy') updatedDifficulty = 'Medium';
+        else if (updatedDifficulty === 'Medium') updatedDifficulty = 'Hard';
+    } else if (correctnessScore < 5.0) {
+        if (updatedDifficulty === 'Hard') updatedDifficulty = 'Medium';
+        else if (updatedDifficulty === 'Medium') updatedDifficulty = 'Easy';
+    }
+    interview.currentDifficulty = updatedDifficulty;
+
+    // Check completion right after coding question evaluation
+    const targetTotalQuestions = interview.totalQuestions || (interview.initialDifficulty === 'Easy' ? 5 : (interview.initialDifficulty === 'Hard' ? 15 : 10));
+    const questionsAnswered = (interview.evaluations ? interview.evaluations.length : 0);
+
+    if (questionsAnswered >= targetTotalQuestions) {
+        interview.status = 'completed';
+        await interview.save();
+        return {
+            type: 'submit',
+            problemId: problem.id,
+            language,
+            publicResults,
+            hiddenSummary: {
+                passedCount: hiddenResults.passedCount,
+                totalCount: hiddenResults.totalCount,
+                passPercentage: hiddenResults.passPercentage
+            },
+            correctnessScore,
+            evaluationResult: aiEvaluationNote,
+            nextQuestion: null,
+            audio: '',
+            isCompleted: true,
+            currentDifficulty: updatedDifficulty,
+            totalQuestions: targetTotalQuestions
+        };
+    }
+
+    // 6. Generate next question via adaptive interviewer
+    interview.messages.push({ 
+        role: 'user', 
+        content: `[Code Submission - ${language}]: Submitted solution for "${problem.title}". Test Cases Passed: ${totalPassed}/${totalTests}. Correctness Score: ${correctnessScore}/10.\n[Evaluator Note]: ${aiEvaluationNote}` 
+    });
     
     const conversationHistory = buildConversationHistory(interview.messages);
     const nextQuestion = await askGroq(FOLLOW_UP_PROMPT(conversationHistory));
@@ -390,19 +586,25 @@ const submitCode = async (interviewId, code, language) => {
     }
 
     interview.messages.push({ role: 'ai', content: nextQuestion });
-    
-    const aiMessagesCount = interview.messages.filter(m => m.role === 'ai').length;
-    const isCompleted = aiMessagesCount > interview.questions.length;
-    
-    // Save interview
     await interview.save();
 
-    // Return payload explicitly mapping instructions
     return {
-        evaluationResult: evaluationResultRaw,
+        type: 'submit',
+        problemId: problem.id,
+        language,
+        publicResults,
+        hiddenSummary: {
+            passedCount: hiddenResults.passedCount,
+            totalCount: hiddenResults.totalCount,
+            passPercentage: hiddenResults.passPercentage
+        },
+        correctnessScore,
+        evaluationResult: aiEvaluationNote,
         nextQuestion,
         audio,
-        isCompleted
+        isCompleted: false,
+        currentDifficulty: updatedDifficulty,
+        totalQuestions: targetTotalQuestions
     };
 };
 
@@ -543,6 +745,7 @@ const normalizeFeedback = (rawFeedback, hasCodingAssessed = true) => {
 module.exports = {
     startInterview,
     submitAnswer,
+    runCode,
     submitCode,
     endInterview,
     getInterviewById
