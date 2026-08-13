@@ -84,9 +84,9 @@ Format response strictly as valid JSON:
   "role": "${role}",
   "initialDifficulty": "${difficulty}",
   "topics": [
-    { "category": "Behavioral & Resume", "weightPercentage": 15, "plannedCount": 1 },
+    { "category": "Behavioral & Resume Deep Dive", "weightPercentage": 20, "plannedCount": 1 },
     { "category": "Core Architecture & Concepts", "weightPercentage": 35, "plannedCount": 2 },
-    { "category": "Domain Deep Dive", "weightPercentage": 30, "plannedCount": 1 },
+    { "category": "Domain Deep Dive", "weightPercentage": 25, "plannedCount": 1 },
     { "category": "Coding Challenge", "weightPercentage": 20, "plannedCount": 1 }
   ],
   "focusAreas": ["string", "string"]
@@ -114,7 +114,68 @@ Evaluate the response objectively. Return strictly valid JSON:
 }
 `;
 
-const GENERATE_ADAPTIVE_QUESTION_PROMPT = (role, currentDifficulty, blueprintJson, trackerJson, lastEvalJson, conversationHistory, currentQuestionNum, totalQuestions) => `
+const RESUME_ANALYSIS_PROMPT = (rawText) => `
+You are an expert technical recruiter analyzing a candidate's resume text.
+Extract the structured entities into a strictly valid JSON object.
+
+Resume Text:
+${rawText}
+
+Return JSON with this exact shape:
+{
+  "workExperience": [
+    {
+      "company": "Company Name",
+      "title": "Job Title",
+      "duration": "Duration / Dates",
+      "keyAchievements": ["Achievement 1", "Achievement 2"],
+      "techStack": ["Technology 1", "Technology 2"]
+    }
+  ],
+  "projects": [
+    {
+      "title": "Project Name",
+      "description": "Brief description of architectural role and purpose",
+      "techStack": ["React", "Node.js", "MongoDB"],
+      "impactMetrics": ["Improved performance by 40%", "Scaled to 10k users"]
+    }
+  ],
+  "technicalSkills": [
+    {
+      "category": "Languages / Frameworks / Cloud",
+      "skills": ["JavaScript", "Python", "Docker"]
+    }
+  ],
+  "verifiableClaims": [
+    {
+      "claimText": "Specific metric or architectural claim from resume",
+      "metric": "40% performance gain",
+      "context": "MongoDB query optimization"
+    }
+  ]
+}
+`;
+
+const RESUME_DEEP_DIVE_PROMPT = (role, parsedResumeJson, currentDifficulty) => `
+You are an expert technical interviewer probing a candidate's resume for the role of "${role}" at difficulty "${currentDifficulty}".
+
+Candidate Resume Intelligence Model:
+${JSON.stringify(parsedResumeJson)}
+
+Task:
+Generate a targeted, probing interview question that asks the candidate to explain the architectural decisions, trade-offs, tech stack, or verifiable claims from one of their specific projects or work experiences.
+
+Return strictly valid JSON:
+{
+  "question": "Probing deep dive question explicitly citing a project or claim from candidate's resume...",
+  "type": "resume",
+  "category": "Behavioral & Resume Deep Dive",
+  "recommendedDifficulty": "${currentDifficulty}",
+  "adaptationReason": "Probing specific candidate project architectural trade-offs from resume"
+}
+`;
+
+const GENERATE_ADAPTIVE_QUESTION_PROMPT = (role, currentDifficulty, blueprintJson, trackerJson, lastEvalJson, conversationHistory, currentQuestionNum, totalQuestions, parsedResumeJson) => `
 You are an adaptive AI interviewer evaluating a candidate for the role of "${role}".
 Current Interview State:
 - Adaptive Difficulty: ${currentDifficulty}
@@ -122,6 +183,7 @@ Current Interview State:
 - Interview Blueprint: ${JSON.stringify(blueprintJson)}
 - Accumulated Performance: ${JSON.stringify(trackerJson)}
 - Last Answer Evaluation: ${JSON.stringify(lastEvalJson)}
+${parsedResumeJson ? `- Structured Candidate Resume Intelligence: ${JSON.stringify(parsedResumeJson)}` : ''}
 
 Recent Conversation History:
 ${conversationHistory}
@@ -132,8 +194,9 @@ Rules:
 1. Check "blueprint.topics" status ("not_covered", "partially_covered", "covered"). Prioritize topics marked "not_covered" or "partially_covered" over topics marked "covered".
 2. If candidate's last evaluation shows weakness (overallScore < 5.5), target the missing concept or weak area with a follow-up probing question at moderate difficulty.
 3. If candidate's last evaluation was strong (overallScore >= 8.0), advance to an uncovered or higher-level topic in the blueprint.
-4. If this is question #${totalQuestions - 1} or near the end and coding has not been covered, output a coding question.
-5. Do NOT repeat any question present in the conversation history. Keep the question crisp, natural, professional, and conversational.
+4. If candidate's resume contains specific projects or verifiable metric claims and "Behavioral & Resume Deep Dive" is not covered, generate a specific deep-dive question probing their architectural role, tech choices, or metrics in that project.
+5. If this is question #${totalQuestions - 1} or near the end and coding has not been covered, output a coding question.
+6. Do NOT repeat any question present in the conversation history. Keep the question crisp, natural, professional, and conversational.
 
 Return ONLY a valid JSON object:
 {
@@ -160,5 +223,7 @@ module.exports = {
     EVALUATE_CODE_PROMPT,
     GENERATE_BLUEPRINT_PROMPT,
     EVALUATE_ANSWER_PROMPT,
+    RESUME_ANALYSIS_PROMPT,
+    RESUME_DEEP_DIVE_PROMPT,
     GENERATE_ADAPTIVE_QUESTION_PROMPT
 };

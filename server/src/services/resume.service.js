@@ -1,13 +1,11 @@
 const pdfParse = require('pdf-parse');
 const Resume = require('../models/Resume.model');
+const { extractStructuredResumeData } = require('./resumeAnalysis.service');
 
 const parseResumePDF = async (pdfBuffer) => {
     try {
-        // Use classic pdf-parse function version 1.1.1
         console.log(`[parseResumePDF] Processing buffer of size: ${pdfBuffer.length} bytes`);
         const data = await pdfParse(pdfBuffer);
-        
-        // Extracted text is available on the .text property
         const text = data.text ? data.text.trim() : '';
         console.log(`[parseResumePDF] Successfully extracted ${text.length} characters.`);
         return text;
@@ -19,15 +17,32 @@ const parseResumePDF = async (pdfBuffer) => {
 
 const saveResume = async (userId, fileName, extractedText) => {
     try {
-        // Use findOneAndUpdate with upsert: true
-        console.log(`[saveResume] Saving resume for user: ${userId}, fileName: ${fileName}`);
-        const savedResume = await Resume.findOneAndUpdate(
-            { userId },
-            { userId, fileName, extractedText },
-            { new: true, upsert: true }
-        );
-        console.log(`[saveResume] Database save successful.`);
-        return savedResume;
+        console.log(`[saveResume] Saving resume version for user: ${userId}, fileName: ${fileName}`);
+
+        // Extract structured resume data (work experience, projects, skills, verifiable claims)
+        let parsedData = null;
+        try {
+            parsedData = await extractStructuredResumeData(extractedText);
+            console.log(`[saveResume] Structured resume extraction successful. Projects found: ${parsedData?.projects?.length || 0}`);
+        } catch (err) {
+            console.error('[saveResume] Failed to extract structured resume data:', err.message);
+        }
+
+        // Deactivate previous active resumes for this candidate
+        await Resume.updateMany({ userId, isActive: true }, { isActive: false });
+
+        // Save new versioned Resume document
+        const newResume = new Resume({
+            userId,
+            fileName,
+            extractedText,
+            parsedData,
+            isActive: true
+        });
+        await newResume.save();
+
+        console.log(`[saveResume] Database save successful. New Resume ID: ${newResume._id}`);
+        return newResume;
     } catch (error) {
         console.error('Error saving resume:', error);
         throw error;
@@ -36,8 +51,7 @@ const saveResume = async (userId, fileName, extractedText) => {
 
 const getResumeByUserId = async (userId) => {
     try {
-        // Retrieve resume for a given user
-        return await Resume.findOne({ userId });
+        return await Resume.findOne({ userId, isActive: true }).sort({ createdAt: -1 }) || await Resume.findOne({ userId }).sort({ createdAt: -1 });
     } catch (error) {
         console.error('Error fetching resume by user ID:', error);
         throw error;

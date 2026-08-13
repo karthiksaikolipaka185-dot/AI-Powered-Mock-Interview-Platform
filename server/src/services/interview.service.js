@@ -1,4 +1,5 @@
 const Interview = require('../models/Interview.model');
+const Resume = require('../models/Resume.model');
 const { askGroq } = require('./groq.service');
 const { parseAIResponse: parseAIJSON } = require('../utils/prompts.utils');
 const { getCodingProblemById, getPublicProblemDefinition } = require('../constants/codingQuestions');
@@ -127,7 +128,12 @@ const startInterview = async (interviewId, userId, role, resumeText, userName, t
             console.warn('Audio generation skipped in startInterview:', audioError.message);
         }
 
-        // 6. Persist adaptive fields to Interview document
+        // 6. Persist adaptive fields & bind active resume to Interview document
+        const activeResume = await Resume.findOne({ userId, isActive: true }).sort({ createdAt: -1 }) || await Resume.findOne({ userId }).sort({ createdAt: -1 });
+        if (activeResume) {
+            interview.resumeId = activeResume._id;
+        }
+
         interview.role = role;
         interview.initialDifficulty = targetDifficulty;
         interview.currentDifficulty = targetDifficulty;
@@ -318,6 +324,18 @@ const submitAnswer = async (interviewId, userAnswer) => {
         questionCategory = 'Problem Solving & Coding';
     } else {
         try {
+            let userResume = null;
+            if (interview.resumeId) {
+                userResume = await Resume.findOne({ _id: interview.resumeId, userId: interview.userId });
+            }
+            if (!userResume && interview.userId) {
+                userResume = await Resume.findOne({ userId: interview.userId });
+            }
+
+            const parsedResumeJson = (userResume?.parsedData && Object.keys(userResume.parsedData).length > 0)
+                ? userResume.parsedData
+                : (userResume?.extractedText ? { rawTextFallback: userResume.extractedText.slice(0, 2000) } : null);
+
             const adaptivePrompt = GENERATE_ADAPTIVE_QUESTION_PROMPT(
                 interview.role,
                 interview.currentDifficulty,
@@ -326,7 +344,8 @@ const submitAnswer = async (interviewId, userAnswer) => {
                 evalObj,
                 conversationHistory,
                 questionsAnswered + 1,
-                targetTotalQuestions
+                targetTotalQuestions,
+                parsedResumeJson
             );
             const rawNext = await askGroq(adaptivePrompt);
             const parsedNext = parseAIJSON(rawNext);
