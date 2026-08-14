@@ -24,7 +24,7 @@ const uploadResume = async (req, res, next) => {
             return res.status(400).json({ success: false, message: "Target role is required for context." });
         }
 
-        const userId = req.user.userId || req.user._id || req.user.id;
+        const userId = req.user?.userId || req.user?._id || req.user?.id || req.userId;
         const fileName = req.file.originalname;
 
         // Extract text from the PDF buffer
@@ -61,7 +61,7 @@ const uploadResume = async (req, res, next) => {
 
 const getResume = async (req, res, next) => {
     try {
-        const userId = req.user.userId || req.user._id || req.user.id;
+        const userId = req.user?.userId || req.user?._id || req.user?.id || req.userId;
         
         // Fetch resume using userId
         const resume = await getResumeByUserId(userId);
