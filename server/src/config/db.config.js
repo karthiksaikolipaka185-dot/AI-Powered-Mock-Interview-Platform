@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
 
 /**
  * Connect to MongoDB instance safely and return connection state
@@ -8,6 +9,13 @@ const connectDB = async () => {
     
     if (!mongoUri) {
         throw new Error('MONGODB_URI is missing from environment variables (.env).');
+    }
+
+    // Set fallback public DNS servers for Windows Node.js querySrv issues
+    try {
+        dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+    } catch (e) {
+        console.warn('Could not set custom DNS servers:', e.message);
     }
 
     mongoose.set('strictQuery', false);

@@ -69,7 +69,8 @@ const InterviewSetupPage = () => {
             }
         } catch (error) {
             console.error('Resume upload failed:', error.response?.data || error.message);
-            setError(error.response?.data?.message || 'Failed to upload resume. Please try again.');
+            const apiMsg = error.response?.data?.message;
+            setError(apiMsg || error.message || 'Failed to upload resume. Please try again.');
         } finally {
             setIsUploading(false);
         }

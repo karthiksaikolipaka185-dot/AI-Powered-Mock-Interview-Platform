@@ -4,12 +4,33 @@ const { extractStructuredResumeData } = require('./resumeAnalysis.service');
 
 const parseResumePDF = async (pdfBuffer) => {
     try {
-        console.log(`[parseResumePDF] Processing buffer of size: ${pdfBuffer.length} bytes`);
-        const data = await pdfParse(pdfBuffer);
-        const text = data.text ? data.text.trim() : '';
-        console.log(`[parseResumePDF] Successfully extracted ${text.length} characters.`);
-        return text || 'No readable text extracted from PDF.';
+        console.log(`[parseResumePDF] Processing buffer of size: ${pdfBuffer ? pdfBuffer.length : 0} bytes`);
+        if (!pdfBuffer || pdfBuffer.length === 0) {
+            const err = new Error('No file uploaded or file buffer is empty.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        // Verify PDF Header magic bytes (%PDF-)
+        const header = pdfBuffer.slice(0, 5).toString('utf-8');
+        if (!header.startsWith('%PDF-')) {
+            console.error('[parseResumePDF] Header validation failed:', header);
+            const parseErr = new Error('Invalid PDF structure: Magic header %PDF- missing.');
+            parseErr.statusCode = 400;
+            throw parseErr;
+        }
+
+        try {
+            const data = await pdfParse(pdfBuffer);
+            const text = data && data.text ? data.text.trim() : '';
+            console.log(`[parseResumePDF] Successfully extracted ${text.length} characters.`);
+            return text || 'No readable text extracted from PDF.';
+        } catch (parseError) {
+            console.warn('[parseResumePDF] pdf-parse warning/fallback (scanned or image PDF):', parseError.message);
+            return 'No readable text extracted from PDF.';
+        }
     } catch (error) {
+        if (error.statusCode === 400) throw error;
         console.error('Error parsing PDF resume:', error.message);
         const parseErr = new Error(error.message || 'Invalid or corrupted PDF file structure.');
         parseErr.statusCode = 400;

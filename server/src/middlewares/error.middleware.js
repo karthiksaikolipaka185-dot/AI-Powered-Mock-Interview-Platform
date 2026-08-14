@@ -12,10 +12,13 @@ const notFoundHandler = (req, res, next) => {
  */
 const errorHandler = (err, req, res, next) => {
     // 1. Log the error internally for debugging
-    console.error('Error in Application:', err.stack);
+    console.error('Error in Application:', err.stack || err.message);
 
-    // 2. Set an appropriate status code
-    const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+    // 2. Set an appropriate status code (Multer errors should return 400, custom err.statusCode respected)
+    let statusCode = err.statusCode || (res.statusCode !== 200 ? res.statusCode : 500);
+    if (err.name === 'MulterError' || err.code === 'LIMIT_FILE_SIZE') {
+        statusCode = 400;
+    }
     
     // 3. Send standardized JSON error response
     res.status(statusCode).json({
