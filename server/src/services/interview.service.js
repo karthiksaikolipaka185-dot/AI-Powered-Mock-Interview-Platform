@@ -712,6 +712,13 @@ const endInterview = async (interviewId, userId) => {
     interview.status = 'completed';
     await interview.save();
 
+    // Trigger Phase 3 candidate skill profile update
+    try {
+        await updateSkillProfileFromInterview(interview.userId, interview);
+    } catch (skillErr) {
+        console.warn('[endInterview] Skill profile update warning:', skillErr.message);
+    }
+
     // Return payload strictly mapping requested format
     return {
         interviewId: interview._id,

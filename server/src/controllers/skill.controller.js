@@ -3,7 +3,7 @@ const Interview = require('../models/Interview.model');
 
 const getProfile = async (req, res) => {
     try {
-        const userId = req.user?.id || req.user?._id || req.userId;
+        const userId = req.user?.userId || req.user?._id || req.user?.id || req.userId;
         if (!userId) {
             return res.status(401).json({ success: false, message: 'Unauthorized' });
         }
@@ -25,7 +25,7 @@ const getProfile = async (req, res) => {
 
 const recalculateProfile = async (req, res) => {
     try {
-        const userId = req.user?.id || req.user?._id || req.userId;
+        const userId = req.user?.userId || req.user?._id || req.user?.id || req.userId;
         if (!userId) {
             return res.status(401).json({ success: false, message: 'Unauthorized' });
         }

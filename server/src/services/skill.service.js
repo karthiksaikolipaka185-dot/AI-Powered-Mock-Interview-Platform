@@ -179,6 +179,20 @@ const updateSkillProfileFromInterview = async (userId, interview) => {
             }
         }
 
+        // 4. Process feedback.scores (for interviews completed via endInterview or general feedback)
+        if (interview.feedback && interview.feedback.scores && typeof interview.feedback.scores === 'object') {
+            for (const [scoreKey, scoreVal] of Object.entries(interview.feedback.scores)) {
+                if (scoreKey !== 'Overall Performance' && typeof scoreVal === 'number' && !isNaN(scoreVal) && scoreVal > 0) {
+                    const norm = normalizeSkill(scoreKey);
+                    if (!extractedScores[norm.name]) {
+                        extractedScores[norm.name] = { category: norm.category, score: scoreVal };
+                    } else {
+                        extractedScores[norm.name].score = Math.round(((extractedScores[norm.name].score + scoreVal) / 2) * 10) / 10;
+                    }
+                }
+            }
+        }
+
         // Apply extracted scores to skills object
         const now = new Date();
         const interviewId = interview._id;
@@ -258,11 +272,21 @@ const updateSkillProfileFromInterview = async (userId, interview) => {
 };
 
 const calculateSkillGaps = (profile) => {
+    if (!profile) {
+        return {
+            targetRole: 'Full Stack Engineer',
+            gaps: [],
+            strongSkills: [],
+            weakSkills: [],
+            improvingSkills: [],
+            decliningSkills: []
+        };
+    }
     const roleKey = profile.targetRole && ROLE_BENCHMARKS[profile.targetRole] 
         ? profile.targetRole 
         : 'Full Stack Engineer';
         
-    const benchmarks = ROLE_BENCHMARKS[roleKey] || ROLE_BENCHMARKS['Full Stack Engineer'];
+    const benchmarks = ROLE_BENCHMARKS[roleKey] || ROLE_BENCHMARKS['Full Stack Engineer'] || [];
     const skillsObj = getSkillsObject(profile.skills);
     const userSkillsList = Object.values(skillsObj);
 
@@ -290,16 +314,18 @@ const calculateSkillGaps = (profile) => {
     }
 
     for (const sItem of userSkillsList) {
-        if (sItem.score >= 7.5 && sItem.assessmentCount >= 1) {
-            strongSkills.push(sItem);
-        } else if (sItem.score < 6.0) {
-            weakSkills.push(sItem);
-        }
+        if (sItem && typeof sItem.score === 'number') {
+            if (sItem.score >= 7.5 && sItem.assessmentCount >= 1) {
+                strongSkills.push(sItem);
+            } else if (sItem.score < 6.0) {
+                weakSkills.push(sItem);
+            }
 
-        if (sItem.trend === 'improving') {
-            improvingSkills.push(sItem);
-        } else if (sItem.trend === 'declining') {
-            decliningSkills.push(sItem);
+            if (sItem.trend === 'improving') {
+                improvingSkills.push(sItem);
+            } else if (sItem.trend === 'declining') {
+                decliningSkills.push(sItem);
+            }
         }
     }
 
@@ -318,9 +344,10 @@ const getSkillProfileByUserId = async (userId) => {
     const userObjId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(String(userId)) : userId;
     let profile = await SkillProfile.findOne({ userId: userObjId });
     
-    // If no profile exists yet, create an initial shell or sync from history
+    const completedInterviews = await Interview.find({ userId: userObjId, status: 'completed' }).sort({ createdAt: 1 });
+
+    // If no profile exists yet, create or populate from history
     if (!profile) {
-        const completedInterviews = await Interview.find({ userId: userObjId, status: 'completed' }).sort({ createdAt: 1 });
         if (completedInterviews.length > 0) {
             for (const inv of completedInterviews) {
                 profile = await updateSkillProfileFromInterview(userObjId, inv);
@@ -332,6 +359,15 @@ const getSkillProfileByUserId = async (userId) => {
                 skills: {}
             });
             await profile.save();
+        }
+    } else {
+        // If profile exists but skills object is empty, auto-sync from completed interviews
+        const skillsObj = getSkillsObject(profile.skills);
+        if (Object.keys(skillsObj).length === 0 && completedInterviews.length > 0) {
+            for (const inv of completedInterviews) {
+                const updated = await updateSkillProfileFromInterview(userObjId, inv);
+                if (updated) profile = updated;
+            }
         }
     }
 
