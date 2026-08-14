@@ -14,9 +14,16 @@ api.interceptors.request.use(config => {
     return config;
 });
 
-export const submitFeedback = async ({ rating, favoriteFeature, suggestion }) => {
+export const submitFeedback = async ({ rating, category, message, page, favoriteFeature, suggestion }) => {
     console.log('[feedbackService] Submitting candidate feedback to /api/feedback...');
-    const response = await api.post('/feedback', { rating, favoriteFeature, suggestion });
+    const response = await api.post('/feedback', {
+        rating,
+        category: category || favoriteFeature || 'General',
+        message: message || suggestion || '',
+        page: page || '',
+        favoriteFeature: category || favoriteFeature || 'General',
+        suggestion: message || suggestion || ''
+    });
     console.log('[feedbackService] Received response:', response.data);
     return response.data;
 };

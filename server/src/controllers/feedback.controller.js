@@ -7,13 +7,16 @@ const submitFeedbackController = async (req, res, next) => {
     try {
         const userId = req.user ? (req.user.userId || req.user._id || req.user.id) : null;
         const userEmail = req.user ? req.user.email : 'Anonymous Candidate';
-        const { rating, favoriteFeature, suggestion } = req.body;
+        const { rating, category, message, favoriteFeature, suggestion, page } = req.body;
 
         const feedback = await feedbackService.submitFeedback({
             userId,
             rating,
+            category,
+            message,
             favoriteFeature,
             suggestion,
+            page,
             userEmail
         });
 

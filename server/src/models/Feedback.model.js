@@ -12,11 +12,23 @@ const feedbackSchema = new mongoose.Schema({
         min: 1,
         max: 5
     },
+    category: {
+        type: String,
+        default: 'General'
+    },
     favoriteFeature: {
         type: String,
-        required: true
+        default: 'General Experience'
     },
     suggestion: {
+        type: String,
+        default: ''
+    },
+    message: {
+        type: String,
+        default: ''
+    },
+    page: {
         type: String,
         default: ''
     },

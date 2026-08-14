@@ -1,56 +1,101 @@
 import React, { useState, useEffect } from 'react';
-import { Star, X, CheckCircle, Loader2 } from 'lucide-react';
+import { Star, X, CheckCircle, Loader2, MessageSquare } from 'lucide-react';
 import { submitFeedback } from '../../services/feedbackService';
 
-const FEATURE_OPTIONS = [
-    'AI Interview',
-    'Voice Interview',
-    'Coding Challenge',
-    'Feedback Report',
-    'UI/UX',
+const CATEGORY_OPTIONS = [
+    'General',
+    'Interview',
+    'Coding Playground',
+    'Resume',
+    'Skill Tracking',
+    'Bug Report',
+    'Feature Request',
     'Other'
 ];
 
-const FeedbackModal = ({ isOpen, onClose, onSubmitSuccess, onMaybeLater, onNeverAskAgain }) => {
+const FeedbackModal = ({ 
+    isOpen, 
+    onClose, 
+    pageContext = '', 
+    onSubmitSuccess, 
+    onMaybeLater, 
+    onNeverAskAgain 
+}) => {
     const [rating, setRating] = useState(5);
     const [hoverRating, setHoverRating] = useState(0);
-    const [favoriteFeature, setFavoriteFeature] = useState('AI Interview');
-    const [suggestion, setSuggestion] = useState('');
+    const [category, setCategory] = useState('General');
+    const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [isSubmitted, setIsSubmitted] = useState(false);
 
+    const handleClose = onClose || onMaybeLater || (() => {});
+
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === 'Escape' && isOpen) {
-                onMaybeLater();
+                handleClose();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, onMaybeLater]);
+    }, [isOpen, handleClose]);
+
+    // Reset form states when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            setRating(5);
+            setHoverRating(0);
+            setCategory('General');
+            setMessage('');
+            setError('');
+            setIsSubmitted(false);
+            setLoading(false);
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!rating || !favoriteFeature) {
-            setError('Please provide a rating and select your favorite feature.');
+        if (loading) return; // Prevent duplicate submission
+
+        if (!rating || rating < 1 || rating > 5) {
+            setError('Please provide a rating between 1 and 5 stars.');
+            return;
+        }
+
+        if (!message.trim()) {
+            setError('Please enter your feedback message.');
+            return;
+        }
+
+        if (message.trim().length < 3) {
+            setError('Feedback message must be at least 3 characters long.');
             return;
         }
 
         setLoading(true);
         setError('');
+
         try {
-            await submitFeedback({ rating, favoriteFeature, suggestion });
+            await submitFeedback({
+                rating,
+                category,
+                message: message.trim(),
+                page: pageContext,
+                favoriteFeature: category,
+                suggestion: message.trim()
+            });
+
             setIsSubmitted(true);
             setTimeout(() => {
-                onSubmitSuccess();
+                if (onSubmitSuccess) onSubmitSuccess();
+                handleClose();
             }, 1800);
         } catch (err) {
-            console.error('Failed to submit feedback:', err);
+            console.error('[FeedbackModal] Failed to submit feedback:', err);
             setError(err.response?.data?.message || 'Failed to submit feedback. Please try again.');
-        } finally {
             setLoading(false);
         }
     };
@@ -58,7 +103,7 @@ const FeedbackModal = ({ isOpen, onClose, onSubmitSuccess, onMaybeLater, onNever
     return (
         <div 
             className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300"
-            onClick={onMaybeLater}
+            onClick={handleClose}
         >
             <div 
                 className="w-full max-w-md bg-card rounded-3xl border border-border-theme shadow-2xl p-6 sm:p-8 relative overflow-hidden animate-in zoom-in-95 duration-300"
@@ -66,7 +111,7 @@ const FeedbackModal = ({ isOpen, onClose, onSubmitSuccess, onMaybeLater, onNever
             >
                 {/* Close Button */}
                 <button 
-                    onClick={onMaybeLater}
+                    onClick={handleClose}
                     className="absolute top-5 right-5 text-text-secondary hover:text-text-main p-1.5 rounded-full hover:bg-accent-theme transition-all"
                     title="Close"
                 >
@@ -79,20 +124,26 @@ const FeedbackModal = ({ isOpen, onClose, onSubmitSuccess, onMaybeLater, onNever
                             <CheckCircle size={36} />
                         </div>
                         <h3 className="text-2xl font-extrabold text-text-main">Thank You!</h3>
-                        <p className="text-sm text-text-secondary max-w-xs mx-auto">
-                            Your feedback has been submitted successfully. We appreciate your help in improving the platform!
+                        <p className="text-sm text-text-secondary max-w-xs mx-auto leading-relaxed font-medium">
+                            Your feedback has been submitted successfully. We appreciate your input in making the platform better!
                         </p>
                     </div>
                 ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-5">
                         {/* Header */}
-                        <div className="space-y-2 text-center pr-6">
+                        <div className="space-y-1.5 text-center pr-6">
                             <h3 className="text-2xl font-extrabold text-text-main tracking-tight flex items-center justify-center gap-2">
-                                <span>⭐</span> We'd Love Your Feedback
+                                <MessageSquare size={24} className="text-primary-theme" />
+                                <span>Send Feedback</span>
                             </h3>
                             <p className="text-xs sm:text-sm text-text-secondary leading-relaxed font-medium">
-                                Congratulations on completing your first AI interview. Your feedback helps us improve the platform.
+                                Tell us about your experience, report issues, or suggest improvements.
                             </p>
+                            {pageContext && (
+                                <div className="inline-block mt-1 px-3 py-1 bg-accent-theme border border-border-theme rounded-full text-[11px] font-mono text-text-secondary">
+                                    Context: <span className="font-bold text-primary-theme">{pageContext}</span>
+                                </div>
+                            )}
                         </div>
 
                         {error && (
@@ -101,11 +152,11 @@ const FeedbackModal = ({ isOpen, onClose, onSubmitSuccess, onMaybeLater, onNever
                             </div>
                         )}
 
-                        <form onSubmit={handleSubmit} className="space-y-5">
-                            {/* Question 1: Star Rating */}
-                            <div className="space-y-2 text-center">
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            {/* Star Rating */}
+                            <div className="space-y-1.5 text-center">
                                 <label className="text-xs font-extrabold uppercase tracking-widest text-text-secondary">
-                                    Overall Rating
+                                    Rating
                                 </label>
                                 <div className="flex items-center justify-center gap-2">
                                     {[1, 2, 3, 4, 5].map((star) => {
@@ -120,7 +171,7 @@ const FeedbackModal = ({ isOpen, onClose, onSubmitSuccess, onMaybeLater, onNever
                                                 className="p-1 text-amber-400 transition-transform active:scale-125 focus:outline-none"
                                             >
                                                 <Star 
-                                                    size={32} 
+                                                    size={30} 
                                                     className={isFilled ? "fill-amber-400 text-amber-400" : "text-border-theme"} 
                                                 />
                                             </button>
@@ -129,47 +180,53 @@ const FeedbackModal = ({ isOpen, onClose, onSubmitSuccess, onMaybeLater, onNever
                                 </div>
                             </div>
 
-                            {/* Question 2: Favorite Feature */}
-                            <div className="space-y-1.5">
+                            {/* Category Selection */}
+                            <div className="space-y-1">
                                 <label className="text-xs font-extrabold uppercase tracking-widest text-text-secondary">
-                                    Favorite Feature
+                                    Category
                                 </label>
                                 <select
-                                    value={favoriteFeature}
-                                    onChange={(e) => setFavoriteFeature(e.target.value)}
+                                    value={category}
+                                    onChange={(e) => setCategory(e.target.value)}
                                     className="w-full bg-accent-theme border-2 border-border-theme rounded-xl p-3 outline-none focus:border-primary-theme text-sm font-semibold text-text-main transition-all cursor-pointer"
                                 >
-                                    {FEATURE_OPTIONS.map((opt) => (
-                                        <option key={opt} value={opt}>
-                                            {opt}
+                                    {CATEGORY_OPTIONS.map((cat) => (
+                                        <option key={cat} value={cat}>
+                                            {cat}
                                         </option>
                                     ))}
                                 </select>
                             </div>
 
-                            {/* Question 3: Suggestions */}
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-extrabold uppercase tracking-widest text-text-secondary">
-                                    Suggestions
-                                </label>
+                            {/* Message Textarea */}
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-extrabold uppercase tracking-widest text-text-secondary">
+                                        Your Feedback
+                                    </label>
+                                    <span className="text-[10px] text-text-secondary font-mono">
+                                        {message.length}/2000
+                                    </span>
+                                </div>
                                 <textarea
                                     rows={3}
-                                    value={suggestion}
-                                    onChange={(e) => setSuggestion(e.target.value)}
-                                    placeholder="Tell us how we can improve."
+                                    value={message}
+                                    onChange={(e) => setMessage(e.target.value)}
+                                    maxLength={2000}
+                                    placeholder="Write your feedback, bug report, or feature request here..."
                                     className="w-full bg-accent-theme border-2 border-border-theme rounded-xl p-3 outline-none focus:border-primary-theme text-sm font-medium text-text-main placeholder-text-secondary/50 resize-none transition-all"
                                 />
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="space-y-3 pt-2">
+                            <div className="space-y-2 pt-1">
                                 <div className="flex gap-3">
                                     <button
                                         type="button"
-                                        onClick={onMaybeLater}
+                                        onClick={handleClose}
                                         className="flex-1 py-3 border-2 border-border-theme rounded-xl font-bold text-sm text-text-secondary hover:bg-accent-theme transition-all"
                                     >
-                                        Maybe Later
+                                        Cancel
                                     </button>
                                     <button
                                         type="submit"
@@ -184,15 +241,17 @@ const FeedbackModal = ({ isOpen, onClose, onSubmitSuccess, onMaybeLater, onNever
                                     </button>
                                 </div>
 
-                                <div className="text-center pt-1">
-                                    <button
-                                        type="button"
-                                        onClick={onNeverAskAgain}
-                                        className="text-xs font-bold text-text-secondary hover:text-text-main underline transition-colors"
-                                    >
-                                        Don't ask again
-                                    </button>
-                                </div>
+                                {onNeverAskAgain && (
+                                    <div className="text-center pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={onNeverAskAgain}
+                                            className="text-xs font-bold text-text-secondary hover:text-text-main underline transition-colors"
+                                        >
+                                            Don't ask again
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </form>
                     </div>

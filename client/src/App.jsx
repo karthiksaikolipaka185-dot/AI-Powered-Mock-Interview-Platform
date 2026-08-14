@@ -21,6 +21,7 @@ import AdminFeedbackPage from './pages/AdminFeedbackPage';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
+import FeedbackWidget from './components/FeedbackWidget';
 
 const App = () => {
     return (
@@ -139,6 +140,8 @@ const App = () => {
                     {/* Catch-all global route */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
+                {/* Persistent Feedback Widget */}
+                <FeedbackWidget />
             </div>
         </Router>
     );
