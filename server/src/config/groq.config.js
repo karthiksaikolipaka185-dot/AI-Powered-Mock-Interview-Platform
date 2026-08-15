@@ -7,7 +7,7 @@ const MODEL_NAME = "llama-3.1-8b-instant"; // Supported stable model
 if (!process.env.GROQ_API_KEY) {
     console.error("CRITICAL: GROQ_API_KEY is missing from environment variables.");
 } else {
-    console.log(`[GroqConfig] API Key loaded (starts with: ${process.env.GROQ_API_KEY.substring(0, 7)}...)`);
+    console.log('[GroqConfig] API Key loaded successfully.');
 }
 
 const groq = new Groq({
