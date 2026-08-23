@@ -145,7 +145,11 @@ const AuthPage = () => {
             }
         } catch (err) {
             console.error('Auth error:', err);
-            setError(err.response?.data?.message || 'An unexpected authentication error occurred.');
+            const backendMessage = err.response?.data?.message || err.response?.data?.error;
+            const networkMessage = err.message === 'Network Error' 
+                ? 'Unable to connect to authentication server. Please verify your backend server connection.' 
+                : err.message;
+            setError(backendMessage || networkMessage || 'An unexpected authentication error occurred.');
         } finally {
             setLoading(false);
         }

@@ -9,8 +9,6 @@ const validateEnvironmentVariables = () => {
     const requiredVars = [
         'MONGODB_URI',
         'JWT_SECRET',
-        'SENDGRID_API_KEY',
-        'EMAIL_FROM',
         'OWNER_EMAIL',
         'CLIENT_URL'
     ];
@@ -36,6 +34,11 @@ const validateEnvironmentVariables = () => {
         console.error('Please configure them in server/.env before starting the server.');
         console.error('====================================================\n');
         throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+    }
+
+    // Informative status check for SendGrid variables
+    if (!process.env.SENDGRID_API_KEY || !process.env.EMAIL_FROM) {
+        console.warn('[Startup] Warning: SENDGRID_API_KEY or EMAIL_FROM is missing. Transactional emails will be disabled until configured.');
     }
 
     // Informative status check for Google OAuth variables
