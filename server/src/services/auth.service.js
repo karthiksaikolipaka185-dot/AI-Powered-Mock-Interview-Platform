@@ -247,7 +247,7 @@ const resendVerificationToken = async (email) => {
     user.verificationTokenExpires = verificationTokenExpires;
     await user.save();
 
-    // Dispatch SendGrid Email
+    // Dispatch Postmark Email
     sendEmailVerificationLink(user.email, verificationToken).catch(err => {
         console.error('[AuthService] Resend verification email error:', err.message);
     });

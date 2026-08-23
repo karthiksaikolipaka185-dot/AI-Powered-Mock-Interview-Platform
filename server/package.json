@@ -8,7 +8,6 @@
     "dev": "nodemon index.js"
   },
   "dependencies": {
-    "@sendgrid/mail": "^8.1.6",
     "assemblyai": "^4.29.0",
     "axios": "^1.14.0",
     "bcrypt": "^6.0.0",
@@ -20,7 +19,8 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.4.1",
     "multer": "^2.1.1",
-    "pdf-parse": "^1.1.1"
+    "pdf-parse": "^1.1.1",
+    "postmark": "^5.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

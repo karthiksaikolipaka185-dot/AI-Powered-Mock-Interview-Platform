@@ -36,9 +36,9 @@ const validateEnvironmentVariables = () => {
         throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
     }
 
-    // Informative status check for SendGrid variables
-    if (!process.env.SENDGRID_API_KEY || !process.env.EMAIL_FROM) {
-        console.warn('[Startup] Warning: SENDGRID_API_KEY or EMAIL_FROM is missing. Transactional emails will be disabled until configured.');
+    // Informative status check for Postmark variables
+    if (!process.env.POSTMARK_SERVER_TOKEN || !process.env.EMAIL_FROM) {
+        console.warn('[Startup] Warning: POSTMARK_SERVER_TOKEN or EMAIL_FROM is missing. Transactional emails will be disabled until configured.');
     }
 
     // Informative status check for Google OAuth variables
@@ -51,14 +51,14 @@ const validateEnvironmentVariables = () => {
  * Audit and print status of all core services during startup.
  */
 const checkServicesStatus = () => {
-    const isSendGridConfigured = Boolean(process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.trim() !== '');
+    const isPostmarkConfigured = Boolean(process.env.POSTMARK_SERVER_TOKEN && process.env.POSTMARK_SERVER_TOKEN.trim() !== '');
 
     const status = {
         mongodb: mongoose.connection.readyState === 1,
         gemini: Boolean(process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY),
         murf: Boolean(process.env.MURF_API_KEY),
         assemblyai: Boolean(process.env.ASSEMBLYAI_API_KEY),
-        email: isSendGridConfigured,
+        email: isPostmarkConfigured,
         googleAuth: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_ID !== 'your_google_client_id'),
         routesLoaded: true
     };
@@ -90,9 +90,9 @@ const checkServicesStatus = () => {
     }
 
     if (status.email) {
-        console.log('✓ SendGrid Ready');
+        console.log('✓ Postmark Ready');
     } else {
-        console.log('✗ Email Failed (Missing SENDGRID_API_KEY)');
+        console.log('✗ Email Failed (Missing POSTMARK_SERVER_TOKEN)');
     }
 
     if (status.googleAuth) {
@@ -109,7 +109,7 @@ const checkServicesStatus = () => {
 
     console.log('-----------------------------\n');
 
-    // Run SendGrid detailed audit check
+    // Run Postmark detailed audit check
     auditEmailConfiguration();
 
     return status;
