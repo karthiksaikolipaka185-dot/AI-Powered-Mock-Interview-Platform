@@ -1,22 +1,28 @@
 const Groq = require("groq-sdk");
 
-// Centralize model configuration
-const MODEL_NAME = "llama-3.1-8b-instant"; // Supported stable model
+const MODEL_NAME = "llama-3.1-8b-instant";
 
-// Initialize Groq client using GROQ_API_KEY
-if (!process.env.GROQ_API_KEY) {
-    console.error("CRITICAL: GROQ_API_KEY is missing from environment variables.");
-} else {
-    console.log('[GroqConfig] API Key loaded successfully.');
-}
+let groqInstance = null;
 
-const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY || "missing_key",
-});
+const getGroqClient = () => {
+    if (!groqInstance) {
+        const apiKey = process.env.GROQ_API_KEY;
+
+        if (!apiKey) {
+            throw new Error("GROQ_API_KEY is missing from environment variables.");
+        }
+
+        groqInstance = new Groq({ apiKey });
+    }
+
+    return groqInstance;
+};
 
 const generateContent = async (prompt) => {
     try {
-        const response = await groq.chat.completions.create({
+        const client = getGroqClient();
+
+        const response = await client.chat.completions.create({
             model: MODEL_NAME,
             messages: [
                 {
@@ -26,9 +32,7 @@ const generateContent = async (prompt) => {
             ],
         });
 
-        // Extract response text
         return response.choices[0].message.content;
-
     } catch (error) {
         console.error("Error generating content with Groq API:", error);
         throw error;

@@ -27,6 +27,8 @@ const AuthPage = () => {
     const navigate = useNavigate();
     const [isLogin, setIsLogin] = useState(true);
     const [loading, setLoading] = useState(false);
+    const [resendLoading, setResendLoading] = useState(false);
+    const [resendCooldown, setResendCooldown] = useState(0);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
@@ -35,6 +37,50 @@ const AuthPage = () => {
         email: '',
         password: ''
     });
+
+    // Cooldown Timer Effect
+    useEffect(() => {
+        let timer;
+        if (resendCooldown > 0) {
+            timer = setInterval(() => {
+                setResendCooldown((prev) => prev - 1);
+            }, 1000);
+        }
+        return () => clearInterval(timer);
+    }, [resendCooldown]);
+
+    // Handle Resend Email Verification Token
+    const handleResendVerification = async () => {
+        if (resendCooldown > 0 || !formData.email) return;
+        
+        if (!isValidEmail(formData.email)) {
+            setError('Please enter your email address to request a verification link.');
+            return;
+        }
+
+        setResendLoading(true);
+        setError('');
+        setSuccess('');
+
+        try {
+            const res = await authService.resendVerificationEmail(formData.email);
+            if (res.success) {
+                setSuccess(res.message || 'A new verification email has been sent to your address.');
+                setResendCooldown(60);
+            } else {
+                setError(res.message || 'Failed to resend verification email.');
+            }
+        } catch (err) {
+            console.error('Resend error:', err);
+            const errMsg = err.response?.data?.message || 'Failed to resend verification email. Please try again.';
+            setError(errMsg);
+            if (err.response?.status === 429) {
+                setResendCooldown(60);
+            }
+        } finally {
+            setResendLoading(false);
+        }
+    };
 
     // Email RFC Validation Regex
     const isValidEmail = (email) => {
@@ -258,9 +304,27 @@ const AuthPage = () => {
                     {/* Form Area */}
                     <div className="p-8 pt-4">
                         {error && (
-                            <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/60 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
-                                <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={18} />
-                                <p className="text-xs font-bold text-rose-600 dark:text-rose-400">{error}</p>
+                            <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/60 rounded-2xl flex flex-col gap-2.5 animate-in slide-in-from-top-2 duration-300">
+                                <div className="flex items-start gap-3">
+                                    <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={18} />
+                                    <p className="text-xs font-bold text-rose-600 dark:text-rose-400">{error}</p>
+                                </div>
+                                {error.toLowerCase().includes('verify your email') && (
+                                    <button
+                                        type="button"
+                                        onClick={handleResendVerification}
+                                        disabled={resendLoading || resendCooldown > 0}
+                                        className="text-xs font-extrabold text-primary-theme hover:text-primary-theme-hover hover:underline transition-all flex items-center gap-1.5 ml-7 text-left disabled:opacity-50"
+                                    >
+                                        <MailCheck size={14} />
+                                        {resendLoading 
+                                            ? 'Sending verification email...' 
+                                            : resendCooldown > 0 
+                                                ? `Resend link in ${resendCooldown}s` 
+                                                : 'Click here to resend verification email'
+                                        }
+                                    </button>
+                                )}
                             </div>
                         )}
 

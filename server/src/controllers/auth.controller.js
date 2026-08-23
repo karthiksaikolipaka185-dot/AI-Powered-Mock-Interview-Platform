@@ -105,6 +105,28 @@ const getMe = async (req, res, next) => {
 };
 
 /**
+ * Resend verification token link to candidate email.
+ */
+const resendVerification = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ success: false, message: 'Email address is required.' });
+        }
+
+        const result = await authService.resendVerificationToken(email);
+
+        return res.status(200).json({
+            success: true,
+            message: result.message
+        });
+    } catch (error) {
+        return res.status(error.statusCode || 400).json({ success: false, message: error.message });
+    }
+};
+
+/**
  * Logout a user account.
  */
 const logout = async (req, res, next) => {
@@ -117,8 +139,10 @@ const logout = async (req, res, next) => {
 module.exports = {
     registerUser,
     verifyEmail,
+    resendVerification,
     loginUser,
     googleAuth,
     getMe,
     logout
 };
+

@@ -2,6 +2,7 @@ const express = require('express');
 const { 
     registerUser, 
     verifyEmail,
+    resendVerification,
     loginUser, 
     googleAuth, 
     getMe, 
@@ -20,10 +21,13 @@ router.post('/register', registerUser);
 // 2. GET /api/auth/verify-email/:token
 router.get('/verify-email/:token', verifyEmail);
 
-// 3. POST /api/auth/login
+// 3. POST /api/auth/resend-verification
+router.post('/resend-verification', resendVerification);
+
+// 4. POST /api/auth/login
 router.post('/login', loginUser);
 
-// 4. POST /api/auth/google (Google Social Login)
+// 5. POST /api/auth/google (Google Social Login)
 router.post('/google', googleAuth);
 
 /**

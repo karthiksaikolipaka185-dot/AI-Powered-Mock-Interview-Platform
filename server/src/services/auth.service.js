@@ -207,6 +207,58 @@ const googleLogin = async (credential) => {
 };
 
 /**
+ * Resend verification token to unverified account with 60s cooldown limit.
+ */
+const resendVerificationToken = async (email) => {
+    if (!isValidEmail(email)) {
+        const error = new Error('Please provide a valid email address.');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    // Privacy protection: Do not reveal if email exists unless account is unverified
+    if (!user || user.isVerified) {
+        return {
+            success: true,
+            message: 'If an unverified account exists with that email address, a new verification link has been sent.'
+        };
+    }
+
+    // Rate limiting: 60 seconds cooldown check
+    if (user.verificationTokenExpires) {
+        const tokenCreatedAt = new Date(user.verificationTokenExpires.getTime() - 24 * 60 * 60 * 1000);
+        const timeSinceCreated = Date.now() - tokenCreatedAt.getTime();
+        if (timeSinceCreated < 60000) {
+            const secondsRemaining = Math.ceil((60000 - timeSinceCreated) / 1000);
+            const error = new Error(`Please wait ${secondsRemaining} seconds before requesting another verification email.`);
+            error.statusCode = 429;
+            throw error;
+        }
+    }
+
+    // Generate new secure verification token and update expiration
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    user.verificationToken = verificationToken;
+    user.verificationTokenExpires = verificationTokenExpires;
+    await user.save();
+
+    // Dispatch SendGrid Email
+    sendEmailVerificationLink(user.email, verificationToken).catch(err => {
+        console.error('[AuthService] Resend verification email error:', err.message);
+    });
+
+    return {
+        success: true,
+        message: 'A new verification email has been sent. Please check your inbox.'
+    };
+};
+
+/**
  * Fetch authenticated user profile.
  */
 const getUserProfile = async (userId) => {
@@ -224,7 +276,9 @@ module.exports = {
     validatePasswordPolicy,
     register,
     verifyEmailToken,
+    resendVerificationToken,
     emailLogin,
     googleLogin,
     getUserProfile
 };
+

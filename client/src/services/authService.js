@@ -21,6 +21,14 @@ export const verifyEmailToken = async (token) => {
 };
 
 /**
+ * Resend verification email to user.
+ */
+export const resendVerificationEmail = async (email) => {
+    const response = await api.post('/resend-verification', { email });
+    return response.data;
+};
+
+/**
  * Login a user.
  */
 export const login = async (credentials) => {
@@ -95,6 +103,7 @@ export const getToken = () => {
 export default {
     register,
     verifyEmailToken,
+    resendVerificationEmail,
     login,
     googleLogin,
     logout,
@@ -103,3 +112,4 @@ export default {
     isAdmin,
     getToken
 };
+

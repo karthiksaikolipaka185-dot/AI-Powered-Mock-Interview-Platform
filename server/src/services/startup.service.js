@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { auditEmailConfiguration } = require('./email.service');
 
 /**
  * Validate required environment variables on server startup.
@@ -8,7 +9,8 @@ const validateEnvironmentVariables = () => {
     const requiredVars = [
         'MONGODB_URI',
         'JWT_SECRET',
-        'RESEND_API_KEY',
+        'SENDGRID_API_KEY',
+        'EMAIL_FROM',
         'OWNER_EMAIL',
         'CLIENT_URL'
     ];
@@ -46,12 +48,14 @@ const validateEnvironmentVariables = () => {
  * Audit and print status of all core services during startup.
  */
 const checkServicesStatus = () => {
+    const isSendGridConfigured = Boolean(process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.trim() !== '');
+
     const status = {
         mongodb: mongoose.connection.readyState === 1,
         gemini: Boolean(process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY),
         murf: Boolean(process.env.MURF_API_KEY),
         assemblyai: Boolean(process.env.ASSEMBLYAI_API_KEY),
-        email: Boolean(process.env.RESEND_API_KEY),
+        email: isSendGridConfigured,
         googleAuth: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_ID !== 'your_google_client_id'),
         routesLoaded: true
     };
@@ -83,9 +87,9 @@ const checkServicesStatus = () => {
     }
 
     if (status.email) {
-        console.log('✓ Email Ready (Resend)');
+        console.log('✓ SendGrid Ready');
     } else {
-        console.log('✗ Email Failed (Missing RESEND_API_KEY)');
+        console.log('✗ Email Failed (Missing SENDGRID_API_KEY)');
     }
 
     if (status.googleAuth) {
@@ -102,6 +106,9 @@ const checkServicesStatus = () => {
 
     console.log('-----------------------------\n');
 
+    // Run SendGrid detailed audit check
+    auditEmailConfiguration();
+
     return status;
 };
 
@@ -109,3 +116,4 @@ module.exports = {
     validateEnvironmentVariables,
     checkServicesStatus
 };
+
