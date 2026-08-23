@@ -1,13 +1,9 @@
-const postmark = require('postmark');
+const sgMail = require('@sendgrid/mail');
 
-/**
- * Get configured Postmark client using POSTMARK_SERVER_TOKEN.
- */
-const getPostmarkClient = () => {
-    const token = process.env.POSTMARK_SERVER_TOKEN;
-    if (!token || !token.trim()) return null;
-    return new postmark.ServerClient(token.trim());
-};
+// Initialize SendGrid API Key if present
+if (process.env.SENDGRID_API_KEY) {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 /**
  * Safely mask an email address for privacy-compliant diagnostic logging.
@@ -33,76 +29,85 @@ const getSenderEmail = () => {
 };
 
 /**
- * Audit Postmark email configuration status (without printing secrets).
+ * Audit SendGrid email configuration status (without printing secrets).
  */
 const auditEmailConfiguration = () => {
-    const serverTokenConfigured = Boolean(process.env.POSTMARK_SERVER_TOKEN && process.env.POSTMARK_SERVER_TOKEN.trim() !== '');
+    const apiKeyConfigured = Boolean(process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.trim() !== '');
     const senderConfigured = Boolean(getSenderEmail() && getSenderEmail().trim() !== '');
 
     console.log('--- Email Service Startup Audit ---');
-    console.log('Provider: Postmark');
-    console.log(`Server Token: ${serverTokenConfigured ? 'configured' : 'missing'}`);
+    console.log('Provider: SendGrid');
+    console.log(`API Key: ${apiKeyConfigured ? 'configured' : 'missing'}`);
     console.log(`Sender: ${senderConfigured ? 'configured' : 'missing'}`);
 
-    if (serverTokenConfigured && senderConfigured) {
+    if (apiKeyConfigured && senderConfigured) {
         console.log('Status: ready');
     } else {
-        console.log('[EmailService] Postmark configuration incomplete.');
+        console.log('[EmailService] SendGrid configuration incomplete.');
         console.log('Status: incomplete');
     }
     console.log('-----------------------------------');
 
-    return { serverTokenConfigured, senderConfigured, isReady: serverTokenConfigured && senderConfigured };
+    return { apiKeyConfigured, senderConfigured, isReady: apiKeyConfigured && senderConfigured };
 };
 
 /**
- * Core helper to send transactional email using Postmark Web API.
+ * Core helper to send transactional email using SendGrid Web API.
  */
-const sendPostmarkEmail = async ({ to, subject, html, text }) => {
+const sendSendGridEmail = async ({ to, subject, html, text }) => {
     const sender = getSenderEmail();
-    const token = process.env.POSTMARK_SERVER_TOKEN;
+    const apiKey = process.env.SENDGRID_API_KEY;
 
-    if (!token || !token.trim()) {
-        console.error('[EmailService] Postmark configuration incomplete. Missing POSTMARK_SERVER_TOKEN.');
-        return { sent: false, error: 'Postmark server token missing' };
+    if (!apiKey || !apiKey.trim()) {
+        console.error('[EmailService] SendGrid configuration incomplete. Missing SENDGRID_API_KEY.');
+        return { sent: false, error: 'SendGrid API key missing' };
     }
 
     if (!sender || !sender.trim()) {
-        console.error('[EmailService] Postmark configuration incomplete. Missing sender email (EMAIL_FROM).');
-        return { sent: false, error: 'Postmark sender email (EMAIL_FROM) missing' };
+        console.error('[EmailService] SendGrid configuration incomplete. Missing sender email (EMAIL_FROM).');
+        return { sent: false, error: 'SendGrid sender email (EMAIL_FROM) missing' };
     }
 
     const maskedRecipient = maskEmail(to);
     console.log(`[EmailService] Sending verification email`);
     console.log(`Recipient: ${maskedRecipient}`);
-    console.log(`Provider: Postmark`);
+    console.log(`Provider: SendGrid`);
 
-    const client = getPostmarkClient();
+    sgMail.setApiKey(apiKey.trim());
+
+    const msg = {
+        to,
+        from: sender.includes('<') ? sender : `MockInterview Platform <${sender}>`,
+        subject,
+        html,
+        text: text || html.replace(/<[^>]*>?/gm, '')
+    };
 
     try {
-        const response = await client.sendEmail({
-            From: sender.includes('<') ? sender : `MockInterview Platform <${sender}>`,
-            To: to,
-            Subject: subject,
-            HtmlBody: html,
-            TextBody: text || html.replace(/<[^>]*>?/gm, '')
-        });
-
-        console.log(`[EmailService] Verification email dispatched successfully`);
-        console.log(`Provider: Postmark`);
+        const [response] = await sgMail.send(msg);
+        const statusCode = response ? response.statusCode : 202;
+        
+        console.log(`[EmailService] Verification email request accepted by SendGrid (HTTP ${statusCode})`);
+        console.log(`Provider: SendGrid`);
         console.log(`Recipient: ${maskedRecipient}`);
-        if (response && response.MessageID) {
-            console.log(`MessageID: ${response.MessageID}`);
-        }
 
-        return { sent: true, statusCode: 200, messageId: response ? response.MessageID : null };
+        return { sent: true, statusCode };
     } catch (error) {
-        const statusCode = error.statusCode || error.code || 500;
-        const errorMessage = error.message || 'Unknown Postmark error';
+        const statusCode = error.code || (error.response && error.response.statusCode) || 500;
+        const errorMessage = error.response && error.response.body && error.response.body.errors 
+            ? JSON.stringify(error.response.body.errors) 
+            : error.message;
 
-        console.error(`[EmailService] Postmark email dispatch error`);
+        console.error(`[EmailService] SendGrid email dispatch error`);
         console.error(`Status: ${statusCode}`);
-        console.error(`Error: ${errorMessage}`);
+
+        if (statusCode === 401) {
+            console.error(`Error: SendGrid API key invalid, revoked, expired, or incorrectly configured.`);
+        } else if (statusCode === 403) {
+            console.error(`Error: SendGrid sender identity (${sender}) not verified or account restricted.`);
+        } else {
+            console.error(`Error: ${errorMessage}`);
+        }
 
         return { sent: false, statusCode, error: errorMessage };
     }
@@ -148,7 +153,7 @@ const sendEmailVerificationLink = async (userEmail, verificationToken) => {
 
     const text = `Verify your MockInterview account\n\nPlease verify your email address by visiting the following link:\n${verificationLink}\n\nThis link expires in 24 hours.`;
 
-    const result = await sendPostmarkEmail({
+    const result = await sendSendGridEmail({
         to: userEmail,
         subject: 'Verify your MockInterview account',
         html,
@@ -187,7 +192,7 @@ const sendFeedbackEmailNotification = async (feedbackData, userEmail = 'Candidat
         </div>
     `;
 
-    const result = await sendPostmarkEmail({
+    const result = await sendSendGridEmail({
         to: recipient,
         subject: `[Candidate Feedback] ${feedbackData.rating}★ Rating from ${userEmail}`,
         html
@@ -228,7 +233,7 @@ const sendPasswordResetEmail = async (userEmail, resetToken) => {
         </div>
     `;
 
-    const result = await sendPostmarkEmail({
+    const result = await sendSendGridEmail({
         to: userEmail,
         subject: 'Reset Your Password - MockInterview',
         html
