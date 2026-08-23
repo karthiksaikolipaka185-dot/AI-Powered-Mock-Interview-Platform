@@ -73,8 +73,18 @@ const startServer = async () => {
         // Step 8: Check and log service status
         checkServicesStatus();
 
-        app.listen(PORT, () => {
+        const server = app.listen(PORT, () => {
             console.log(`Server actively running on port ${PORT}`);
+        });
+
+        server.on('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                console.error('\n====================================================');
+                console.error(`FATAL STARTUP ERROR: Port ${PORT} is already in use by another process!`);
+                console.error(`Please stop the process using port ${PORT} or set a free PORT in server/.env.`);
+                console.error('====================================================\n');
+                process.exit(1);
+            }
         });
     } catch (error) {
         console.error('\n====================================================');
