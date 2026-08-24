@@ -1,7 +1,5 @@
-const { Groq } = require('groq-sdk');
+const { getGroqClient, getGroqModel } = require('../config/groq.config');
 const { RESUME_ANALYSIS_PROMPT } = require('../constants/prompts');
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 /**
  * Parses raw text from a candidate's resume into a structured JSON intelligence model.
@@ -16,10 +14,12 @@ const extractStructuredResumeData = async (rawText) => {
 
         console.log(`[extractStructuredResumeData] Analyzing resume text (${rawText.length} chars)...`);
 
+        const groq = getGroqClient();
+        const model = getGroqModel();
         const prompt = RESUME_ANALYSIS_PROMPT(rawText);
         const completion = await groq.chat.completions.create({
             messages: [{ role: 'user', content: prompt }],
-            model: 'llama-3.3-70b-versatile',
+            model,
             temperature: 0.1,
             response_format: { type: 'json_object' }
         });

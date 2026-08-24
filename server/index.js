@@ -71,7 +71,7 @@ const startServer = async () => {
         await connectDB();
 
         // Step 8: Check and log service status
-        checkServicesStatus();
+        await checkServicesStatus();
 
         const server = app.listen(PORT, () => {
             console.log(`Server actively running on port ${PORT}`);

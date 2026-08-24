@@ -1,6 +1,8 @@
 const Groq = require("groq-sdk");
 
-const MODEL_NAME = "llama-3.1-8b-instant";
+const getGroqModel = () => {
+    return process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+};
 
 let groqInstance = null;
 
@@ -18,12 +20,50 @@ const getGroqClient = () => {
     return groqInstance;
 };
 
+const auditGroqService = async () => {
+    const apiKeyConfigured = Boolean(process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.trim() !== '');
+    const model = getGroqModel();
+    let status = 'unavailable';
+
+    if (!apiKeyConfigured) {
+        return {
+            provider: 'Groq',
+            apiKey: 'missing',
+            model,
+            status: 'failed (missing API key)'
+        };
+    }
+
+    try {
+        const client = getGroqClient();
+        const response = await client.chat.completions.create({
+            model,
+            messages: [{ role: 'user', content: 'ping' }],
+            max_tokens: 5
+        });
+        if (response && response.choices && response.choices.length > 0) {
+            status = 'ready';
+        }
+    } catch (err) {
+        console.error(`[GroqConfig] Configured model "${model}" is unavailable:`, err.message || err);
+        status = `unavailable (${err.message || 'error'})`;
+    }
+
+    return {
+        provider: 'Groq',
+        apiKey: apiKeyConfigured ? 'configured' : 'missing',
+        model,
+        status
+    };
+};
+
 const generateContent = async (prompt) => {
+    const model = getGroqModel();
     try {
         const client = getGroqClient();
 
         const response = await client.chat.completions.create({
-            model: MODEL_NAME,
+            model,
             messages: [
                 {
                     role: "user",
@@ -34,12 +74,21 @@ const generateContent = async (prompt) => {
 
         return response.choices[0].message.content;
     } catch (error) {
-        console.error("Error generating content with Groq API:", error);
+        if (error.status === 404 || error.code === 'model_not_found' || (error.message && error.message.includes('does not exist'))) {
+            console.error(`[GroqConfig] Configured model "${model}" is unavailable.`);
+        } else {
+            console.error("Error generating content with Groq API:", error.message || error);
+        }
         throw error;
     }
 };
 
 module.exports = {
     generateContent,
-    MODEL_NAME,
+    getGroqModel,
+    getGroqClient,
+    auditGroqService,
+    get MODEL_NAME() {
+        return getGroqModel();
+    }
 };

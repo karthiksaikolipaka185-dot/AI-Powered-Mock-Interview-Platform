@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { auditEmailConfiguration } = require('./email.service');
+const { auditGroqService, getGroqModel } = require('../config/groq.config');
 
 /**
  * Validate required environment variables on server startup.
@@ -50,8 +51,16 @@ const validateEnvironmentVariables = () => {
 /**
  * Audit and print status of all core services during startup.
  */
-const checkServicesStatus = () => {
+const checkServicesStatus = async () => {
     const isSendGridConfigured = Boolean(process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.trim() !== '');
+    const groqAudit = await auditGroqService();
+
+    console.log('\n--- Groq Service Startup Audit ---');
+    console.log(`Provider: ${groqAudit.provider}`);
+    console.log(`API Key: ${groqAudit.apiKey}`);
+    console.log(`Model: ${groqAudit.model}`);
+    console.log(`Status: ${groqAudit.status}`);
+    console.log('----------------------------------');
 
     const status = {
         mongodb: mongoose.connection.readyState === 1,
@@ -72,9 +81,9 @@ const checkServicesStatus = () => {
     }
 
     if (status.gemini) {
-        console.log('✓ Gemini Ready');
+        console.log(`✓ Groq/Gemini Ready (Model: ${getGroqModel()})`);
     } else {
-        console.log('✗ Gemini Failed (Missing API Key)');
+        console.log('✗ Gemini/Groq Failed (Missing API Key)');
     }
 
     if (status.murf) {
