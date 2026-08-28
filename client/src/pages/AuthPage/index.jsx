@@ -11,7 +11,8 @@ import {
     AlertCircle,
     CheckCircle2,
     ShieldCheck,
-    MailCheck
+    MailCheck,
+    Sparkles
 } from 'lucide-react';
 
 const GoogleIcon = () => (
@@ -283,187 +284,193 @@ const AuthPage = () => {
     }, [isLogin]);
 
     return (
-        <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-background relative overflow-hidden">
-            {/* Decorative Background Elements */}
-            <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary-500/5 rounded-full blur-[120px]"></div>
-                <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/5 rounded-full blur-[120px]"></div>
-            </div>
-
-            <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-500">
-                <div className="bg-card rounded-3xl border border-border-theme card-shadow overflow-hidden">
-                    {/* Header */}
-                    <div className="p-8 pb-4 text-center">
-                        <div className="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-primary-500/20">
-                            {isLogin ? <LogIn className="text-white" size={32} /> : <UserPlus className="text-white" size={32} />}
-                        </div>
-                        <h2 className="text-3xl font-extrabold text-text-main tracking-tight">
-                            {isLogin ? 'Welcome Back' : 'Get Started'}
-                        </h2>
-                        <p className="text-text-secondary mt-2 font-medium">
-                            {isLogin ? 'Sign in to continue your interview practice' : 'Create an account to start your AI journey'}
-                        </p>
-                    </div>
-
-                    {/* Form Area */}
-                    <div className="p-8 pt-4">
-                        {error && (
-                            <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/60 rounded-2xl flex flex-col gap-2.5 animate-in slide-in-from-top-2 duration-300">
-                                <div className="flex items-start gap-3">
-                                    <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={18} />
-                                    <p className="text-xs font-bold text-rose-600 dark:text-rose-400">{error}</p>
-                                </div>
-                                {error.toLowerCase().includes('verify your email') && (
-                                    <button
-                                        type="button"
-                                        onClick={handleResendVerification}
-                                        disabled={resendLoading || resendCooldown > 0}
-                                        className="text-xs font-extrabold text-primary-theme hover:text-primary-theme-hover hover:underline transition-all flex items-center gap-1.5 ml-7 text-left disabled:opacity-50"
-                                    >
-                                        <MailCheck size={14} />
-                                        {resendLoading 
-                                            ? 'Sending verification email...' 
-                                            : resendCooldown > 0 
-                                                ? `Resend link in ${resendCooldown}s` 
-                                                : 'Click here to resend verification email'
-                                        }
-                                    </button>
-                                )}
+        <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-4 sm:p-6 md:p-10 bg-background relative overflow-hidden bg-[#f4f7fe] dark:bg-background">
+            <div className="w-full max-w-md my-auto relative z-10">
+                <div className="flex flex-col justify-center w-full">
+                    
+                    {/* Authentication Panel */}
+                    <div className="w-full">
+                        <div className="bg-card rounded-2xl shadow-xl border border-border-theme overflow-hidden">
+                            {/* Header Area */}
+                            <div className="p-6 sm:p-8 pb-3">
+                                <h2 className="text-2xl font-extrabold text-text-main tracking-tight">
+                                    {isLogin ? 'Welcome back' : 'Create an account'}
+                                </h2>
+                                <p className="text-xs sm:text-sm text-text-secondary mt-1.5 font-medium leading-relaxed">
+                                    {isLogin ? 'Practice smarter. Interview with confidence.' : 'Start your AI-powered interview practice session today.'}
+                                </p>
                             </div>
-                        )}
 
-                        {success && (
-                            <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/60 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
-                                <MailCheck className="text-emerald-500 shrink-0 mt-0.5" size={20} />
-                                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{success}</p>
-                            </div>
-                        )}
-
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            {!isLogin && (
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-text-secondary uppercase tracking-widest ml-1">Full Name</label>
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <UserIcon className="text-text-secondary group-focus-within:text-primary-theme transition-colors" size={18} />
+                            {/* Form Area */}
+                            <div className="p-6 sm:p-8 pt-2">
+                                {error && (
+                                    <div className="mb-5 p-3.5 bg-rose-50/80 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 rounded-xl flex flex-col gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                        <div className="flex items-start gap-2.5">
+                                            <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={16} />
+                                            <p className="text-xs font-semibold text-rose-600 dark:text-rose-300 leading-relaxed">{error}</p>
                                         </div>
-                                        <input 
-                                            type="text"
-                                            name="name"
-                                            required={!isLogin}
-                                            value={formData.name}
-                                            onChange={handleChange}
-                                            placeholder="John Doe"
-                                            className="w-full bg-accent-theme border-2 border-border-theme rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-theme focus:bg-surface transition-all font-medium text-text-main placeholder-text-secondary/50"
-                                        />
+                                        {error.toLowerCase().includes('verify your email') && (
+                                            <button
+                                                type="button"
+                                                onClick={handleResendVerification}
+                                                disabled={resendLoading || resendCooldown > 0}
+                                                className="text-xs font-bold text-primary-theme hover:text-primary-theme-hover hover:underline transition-all flex items-center gap-1.5 ml-6 text-left disabled:opacity-50 cursor-pointer"
+                                            >
+                                                <MailCheck size={14} />
+                                                {resendLoading 
+                                                    ? 'Sending verification email...' 
+                                                    : resendCooldown > 0 
+                                                        ? `Resend link in ${resendCooldown}s` 
+                                                        : 'Click here to resend verification email'
+                                                }
+                                            </button>
+                                        )}
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-text-secondary uppercase tracking-widest ml-1">Email Address</label>
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <Mail className="text-text-secondary group-focus-within:text-primary-theme transition-colors" size={18} />
+                                {success && (
+                                    <div className="mb-5 p-3.5 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-900/60 rounded-xl flex items-start gap-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                                        <MailCheck className="text-emerald-500 shrink-0 mt-0.5" size={18} />
+                                        <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-300 leading-relaxed">{success}</p>
                                     </div>
-                                    <input 
-                                        type="email"
-                                        name="email"
-                                        required
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        placeholder="john@gmail.com"
-                                        className="w-full bg-accent-theme border-2 border-border-theme rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-theme focus:bg-surface transition-all font-medium text-text-main placeholder-text-secondary/50"
-                                    />
-                                </div>
-                            </div>
+                                )}
 
-                            <div className="space-y-1.5">
-                                <div className="flex justify-between items-center ml-1">
-                                    <label className="text-xs font-bold text-text-secondary uppercase tracking-widest">Password</label>
-                                    {isLogin && (
-                                        <button type="button" className="text-[10px] font-bold text-primary-theme hover:text-primary-theme-hover tracking-tight">Forgot?</button>
-                                    )}
-                                </div>
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <Lock className="text-text-secondary group-focus-within:text-primary-theme transition-colors" size={18} />
-                                    </div>
-                                    <input 
-                                        type="password"
-                                        name="password"
-                                        required
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                        placeholder="••••••••"
-                                        className="w-full bg-accent-theme border-2 border-border-theme rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-theme focus:bg-surface transition-all font-medium text-text-main placeholder-text-secondary/50"
-                                    />
-                                </div>
-
-                                {/* Password Policy Checklist on Signup */}
-                                {!isLogin && formData.password.length > 0 && (
-                                    <div className="p-3 bg-accent-theme rounded-xl border border-border-theme text-[11px] space-y-1 mt-2">
-                                        <span className="font-bold text-text-secondary block mb-1">Password Requirements:</span>
-                                        {passwordRequirements.map((req, idx) => {
-                                            const met = req.check(formData.password);
-                                            return (
-                                                <div key={idx} className={`flex items-center gap-1.5 font-medium ${met ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-secondary'}`}>
-                                                    {met ? <CheckCircle2 size={12} /> : <div className="w-1.5 h-1.5 rounded-full bg-text-secondary/40 ml-1"></div>}
-                                                    <span>{req.label}</span>
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    {!isLogin && (
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-0.5">Full Name</label>
+                                            <div className="relative group">
+                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                                    <UserIcon className="text-text-secondary group-focus-within:text-primary-theme transition-colors" size={18} />
                                                 </div>
-                                            );
-                                        })}
+                                                <input 
+                                                    type="text"
+                                                    name="name"
+                                                    required={!isLogin}
+                                                    value={formData.name}
+                                                    onChange={handleChange}
+                                                    placeholder="John Doe"
+                                                    className="w-full bg-accent-theme/50 border border-border-theme rounded-xl py-2.5 pl-11 pr-4 outline-none focus:border-primary-theme focus:ring-2 focus:ring-primary-theme/20 focus:bg-surface transition-all text-sm font-medium text-text-main placeholder-text-secondary/50"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-0.5">Email Address</label>
+                                        <div className="relative group">
+                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                                <Mail className="text-text-secondary group-focus-within:text-primary-theme transition-colors" size={18} />
+                                            </div>
+                                            <input 
+                                                type="email"
+                                                name="email"
+                                                required
+                                                value={formData.email}
+                                                onChange={handleChange}
+                                                placeholder="john@gmail.com"
+                                                className="w-full bg-accent-theme/50 border border-border-theme rounded-xl py-2.5 pl-11 pr-4 outline-none focus:border-primary-theme focus:ring-2 focus:ring-primary-theme/20 focus:bg-surface transition-all text-sm font-medium text-text-main placeholder-text-secondary/50"
+                                            />
+                                        </div>
                                     </div>
-                                )}
+
+                                    <div className="space-y-1.5">
+                                        <div className="flex justify-between items-center ml-0.5">
+                                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Password</label>
+                                            {isLogin && (
+                                                <button 
+                                                    type="button" 
+                                                    className="text-xs font-semibold text-primary-theme hover:text-primary-theme-hover hover:underline transition-colors cursor-pointer"
+                                                >
+                                                    Forgot password?
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="relative group">
+                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                                <Lock className="text-text-secondary group-focus-within:text-primary-theme transition-colors" size={18} />
+                                            </div>
+                                            <input 
+                                                type="password"
+                                                name="password"
+                                                required
+                                                value={formData.password}
+                                                onChange={handleChange}
+                                                placeholder="••••••••"
+                                                className="w-full bg-accent-theme/50 border border-border-theme rounded-xl py-2.5 pl-11 pr-4 outline-none focus:border-primary-theme focus:ring-2 focus:ring-primary-theme/20 focus:bg-surface transition-all text-sm font-medium text-text-main placeholder-text-secondary/50"
+                                            />
+                                        </div>
+
+                                        {/* Password Policy Checklist on Signup */}
+                                        {!isLogin && formData.password.length > 0 && (
+                                            <div className="p-3 bg-accent-theme/40 rounded-xl border border-border-theme text-[11px] space-y-1 mt-2">
+                                                <span className="font-semibold text-text-secondary block mb-1">Password Requirements:</span>
+                                                <div className="grid grid-cols-1 gap-1">
+                                                    {passwordRequirements.map((req, idx) => {
+                                                        const met = req.check(formData.password);
+                                                        return (
+                                                            <div key={idx} className={`flex items-center gap-1.5 font-medium transition-colors ${met ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-secondary/70'}`}>
+                                                                {met ? <CheckCircle2 size={13} className="shrink-0" /> : <div className="w-1.5 h-1.5 rounded-full bg-text-secondary/40 ml-1 shrink-0"></div>}
+                                                                <span>{req.label}</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <button 
+                                        type="submit" 
+                                        disabled={loading}
+                                        className="w-full bg-primary-theme text-white rounded-xl py-3 px-4 font-bold text-sm shadow-md shadow-primary-500/20 hover:bg-primary-theme-hover hover:shadow-lg hover:shadow-primary-500/30 active:scale-[0.99] transition-all flex items-center justify-center gap-2 mt-5 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                                    >
+                                        {loading ? (
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        ) : (
+                                            <>
+                                                <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
+                                                <ArrowRight size={18} />
+                                            </>
+                                        )}
+                                    </button>
+                                </form>
+
+                                {/* Divider */}
+                                <div className="relative my-6">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <div className="w-full border-t border-border-theme"></div>
+                                    </div>
+                                    <div className="relative flex justify-center text-[11px] font-semibold uppercase tracking-wider">
+                                        <span className="bg-card px-3 text-text-secondary">Or continue with</span>
+                                    </div>
+                                </div>
+
+                                {/* Google Sign-In Container */}
+                                <div className="w-full flex justify-center mt-2" onClick={() => console.log('Google button clicked')}>
+                                    <div 
+                                        id="google-signin-btn-container"
+                                        className="w-full flex justify-center min-h-[44px]"
+                                    ></div>
+                                </div>
                             </div>
 
-                            <button 
-                                type="submit" 
-                                disabled={loading}
-                                className="w-full bg-primary-theme text-white rounded-2xl py-4 font-extrabold text-lg shadow-xl shadow-primary-500/20 hover:bg-primary-theme-hover active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-70"
-                            >
-                                {loading ? (
-                                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                ) : (
-                                    <>
-                                        {isLogin ? 'Sign In Now' : 'Create My Account'}
-                                        <ArrowRight size={20} />
-                                    </>
-                                )}
-                            </button>
-                        </form>
-
-                        {/* Divider */}
-                        <div className="relative my-8">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-border-theme"></div>
+                            {/* Footer */}
+                            <div className="p-5 bg-accent-theme/40 border-t border-border-theme text-center">
+                                <p className="text-xs sm:text-sm font-medium text-text-secondary">
+                                    {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
+                                    <button 
+                                        type="button"
+                                        onClick={() => { setIsLogin(!isLogin); setError(''); setSuccess(''); }} 
+                                        className="text-primary-theme font-bold hover:text-primary-theme-hover hover:underline transition-all ml-1 cursor-pointer"
+                                    >
+                                        {isLogin ? 'Sign Up' : 'Sign In'}
+                                    </button>
+                                </p>
                             </div>
-                            <div className="relative flex justify-center text-xs font-bold uppercase tracking-widest">
-                                <span className="bg-card px-4 text-text-secondary/60">Or continue with</span>
-                            </div>
-                        </div>
-
-                        {/* Social Buttons */}
-                        <div className="w-full flex justify-center mt-2" onClick={() => console.log('Google button clicked')}>
-                            <div 
-                                id="google-signin-btn-container"
-                                className="w-full flex justify-center"
-                            ></div>
                         </div>
                     </div>
 
-                    {/* Footer */}
-                    <div className="p-6 bg-accent-theme/30 border-t border-border-theme text-center">
-                        <p className="text-sm font-medium text-text-secondary">
-                            {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
-                            <button 
-                                onClick={() => { setIsLogin(!isLogin); setError(''); setSuccess(''); }} 
-                                className="text-primary-theme font-extrabold hover:text-primary-theme-hover hover:underline transition-all"
-                            >
-                                {isLogin ? 'Sign Up Free' : 'Sign In'}
-                            </button>
-                        </p>
-                    </div>
                 </div>
             </div>
         </div>
@@ -471,3 +478,5 @@ const AuthPage = () => {
 };
 
 export default AuthPage;
+
+

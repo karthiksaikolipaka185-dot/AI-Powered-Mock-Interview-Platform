@@ -40,38 +40,40 @@ const Navbar = () => {
             </div>
 
             <div className="flex items-center gap-6 md:gap-8">
-                <div className="flex items-center gap-4 md:gap-6">
-                    {user && navLinks.map(({ path, label, icon: Icon }) => {
-                        const isActive = location.pathname === path;
-                        return (
-                            <Link
-                                key={path}
-                                to={path}
-                                className={`flex items-center gap-2 text-sm font-medium transition-all duration-200 p-2 rounded-md ${
-                                    isActive 
-                                    ? 'text-primary-theme bg-primary-theme/10' 
-                                    : 'text-text-secondary hover:text-primary-theme hover:bg-accent-theme'
-                                }`}
-                            >
-                                <Icon size={18} />
-                                <span className="hidden md:block">{label}</span>
-                            </Link>
-                        );
-                    })}
-                </div>
+                {user && (
+                    <div className="flex items-center gap-4 md:gap-6">
+                        {navLinks.map(({ path, label, icon: Icon }) => {
+                            const isActive = location.pathname === path;
+                            return (
+                                <Link
+                                    key={path}
+                                    to={path}
+                                    className={`flex items-center gap-2 text-sm font-medium transition-all duration-200 p-2 rounded-md ${
+                                        isActive 
+                                        ? 'text-primary-theme bg-primary-theme/10' 
+                                        : 'text-text-secondary hover:text-primary-theme hover:bg-accent-theme'
+                                    }`}
+                                >
+                                    <Icon size={18} />
+                                    <span className="hidden md:block">{label}</span>
+                                </Link>
+                            );
+                        })}
+                    </div>
+                )}
                 
-                <div className="h-6 w-px bg-border-theme hidden sm:block"></div>
+                {user && <div className="h-6 w-px bg-border-theme hidden sm:block"></div>}
                 
                 <div className="flex items-center gap-3">
                     <button 
                         onClick={toggleTheme}
                         aria-label="Toggle Theme"
-                        className="p-2 text-text-secondary hover:text-primary-theme hover:bg-accent-theme rounded-full transition-colors flex items-center justify-center"
+                        className="p-2 text-text-secondary hover:text-primary-theme hover:bg-accent-theme rounded-full transition-colors flex items-center justify-center cursor-pointer"
                     >
                         {theme === 'dark' ? <Sun size={20} className="text-amber-400" /> : <Moon size={20} />}
                     </button>
                     
-                    {user ? (
+                    {user && (
                         <div className="flex items-center gap-3">
                             <div className="flex flex-col items-end hidden md:flex">
                                 <span className="text-xs font-bold text-text-main leading-none">{user.name}</span>
@@ -92,10 +94,6 @@ const Navbar = () => {
                                     <LogOut size={14} /> Logout Session
                                 </button>
                             </div>
-                        </div>
-                    ) : (
-                        <div className="w-10 h-10 rounded-full bg-accent-theme border-2 border-border-theme shadow-sm flex items-center justify-center cursor-pointer hover:border-primary-200 transition-all">
-                            <User size={20} className="text-text-secondary" />
                         </div>
                     )}
                 </div>

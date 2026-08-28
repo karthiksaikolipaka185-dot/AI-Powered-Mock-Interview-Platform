@@ -63,3 +63,23 @@
   box-shadow: var(--shadow);
 }
 
+.auth-bg-gradient {
+  background-image: radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--primary) 6%, transparent) 0%, transparent 45%),
+                    radial-gradient(circle at 85% 75%, color-mix(in srgb, #6366f1 5%, transparent) 0%, transparent 45%);
+}
+
+.dark .auth-bg-gradient {
+  background-image: radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--primary) 12%, transparent) 0%, transparent 50%),
+                    radial-gradient(circle at 85% 75%, color-mix(in srgb, #6366f1 10%, transparent) 0%, transparent 50%);
+}
+
+.auth-card-shadow {
+  box-shadow: 0 16px 32px -8px rgba(15, 23, 42, 0.06), 0 0 0 1px color-mix(in srgb, var(--border) 90%, transparent);
+}
+
+.dark .auth-card-shadow {
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+
+

@@ -70,6 +70,20 @@ const startInterview = async (interviewId, userId, role, resumeText, userName, t
             throw error;
         }
 
+        // Idempotent: Prevent overwriting an already initialized active interview
+        if (interview.status === 'active' && interview.messages && interview.messages.length > 0) {
+            console.log(`[startInterview] Interview ${interviewId} is already active. Returning existing state.`);
+            return {
+                interviewId: interview._id,
+                questions: interview.questions,
+                greetingText: interview.messages[0].content,
+                audio: interview.lastAudio || '',
+                blueprint: interview.blueprint,
+                currentDifficulty: interview.currentDifficulty,
+                totalQuestions: interview.totalQuestions
+            };
+        }
+
         // 2. Generate Interview Blueprint via AI
         let blueprintObj = null;
         try {
@@ -420,8 +434,11 @@ const submitAnswer = async (interviewId, userAnswer) => {
         question: nextQuestionText,
         type: questionType,
         category: questionCategory,
-        difficulty: updatedDifficulty
+        difficulty: updatedDifficulty,
+        problem: codingProblem
     });
+    
+    interview.lastAudio = audio || '';
 
     await interview.save();
 
@@ -623,6 +640,14 @@ const submitCode = async (interviewId, code, language, problemId = 'two-sum', us
     }
 
     interview.messages.push({ role: 'ai', content: nextQuestion });
+    interview.questions.push({
+        question: nextQuestion,
+        type: 'technical',
+        category: 'Follow-up',
+        difficulty: updatedDifficulty
+    });
+    interview.lastAudio = audio || '';
+    
     await interview.save();
 
     return {

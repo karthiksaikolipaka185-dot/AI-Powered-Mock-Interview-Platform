@@ -188,17 +188,42 @@ const InterviewPage = () => {
                 
                 if (data.questions && data.questions.length > 0) {
                     setQuestionsList(data.questions);
-                    setTotalQuestions(data.questions.length);
+                    setTotalQuestions(data.totalQuestions || 5);
                     const aiChats = data.messages ? data.messages.filter(m => m.role === 'ai') : [];
                     const currentAIQuestion = aiChats.length > 0 ? aiChats[aiChats.length - 1].content : data.questions[0]?.question;
                     setActiveQuestionText(currentAIQuestion || '');
-                    setCurrentQuestionNum(Math.max(1, Math.min(aiChats.length, data.questions.length)));
+                    
+                    const answeredCount = data.evaluations ? data.evaluations.length : 0;
+                    setCurrentQuestionNum(answeredCount + 1);
+                    
+                    let currentQuestionObj = null;
+                    if (answeredCount === 0) {
+                        currentQuestionObj = data.questions[0];
+                    } else {
+                        currentQuestionObj = data.questions[data.questions.length - 1];
+                    }
+
+                    if (currentQuestionObj) {
+                        if (currentQuestionObj.category) setQuestionCategory(currentQuestionObj.category);
+                        if (currentQuestionObj.type === 'coding') {
+                            setActiveTab('code');
+                            if (currentQuestionObj.problem) {
+                                setActiveQuestionProblem(currentQuestionObj.problem);
+                            }
+                        }
+                    }
                 }
-                setPhase('speaking');
-                if (location.state?.audio) {
-                    setAudioBase64(location.state.audio);
-                } else if (data.lastAudio) {
-                    setAudioBase64(data.lastAudio);
+                
+                if (data.status === 'completed') {
+                    setPhase('farewell');
+                    if (data.feedback) setFeedbackReport(data.feedback);
+                } else {
+                    setPhase('speaking');
+                    if (location.state?.audio) {
+                        setAudioBase64(location.state.audio);
+                    } else if (data.lastAudio) {
+                        setAudioBase64(data.lastAudio);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to load interview context.");
