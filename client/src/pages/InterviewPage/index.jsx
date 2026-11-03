@@ -28,7 +28,11 @@ import {
     ArrowRight,
     Zap,
     Flame,
-    Sparkles
+    Sparkles,
+    ChevronDown,
+    ChevronUp,
+    Check,
+    AlertCircle
 } from 'lucide-react';
 
 const StatusBadge = ({ phase }) => {
@@ -65,6 +69,99 @@ const AdaptiveBadge = ({ difficulty }) => {
     );
 };
 
+const EvaluationFeedbackCard = ({ evaluation }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    if (!evaluation) return null;
+
+    const {
+        technicalScore = 0,
+        communicationScore = 0,
+        relevanceScore = 0,
+        overallScore = 0,
+        evaluationSummary = '',
+        strengths = [],
+        weaknesses = [],
+        missingConcepts = []
+    } = evaluation;
+
+    return (
+        <div className="bg-card border border-border-theme rounded-2xl p-4 shadow-sm space-y-3 animate-in fade-in duration-300">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Sparkles size={16} className="text-primary-theme" />
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-text-main">
+                        Last Answer Assessment
+                    </span>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="flex items-center gap-1 text-xs font-bold text-primary-theme hover:underline"
+                >
+                    <span>{isExpanded ? 'Less' : 'Details'}</span>
+                    {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+            </div>
+
+            {/* Score pills */}
+            <div className="grid grid-cols-3 gap-2">
+                <div className="bg-accent-theme rounded-xl p-2 text-center">
+                    <div className="text-[10px] font-bold uppercase text-text-secondary">Overall</div>
+                    <div className="text-sm font-extrabold text-primary-theme">{overallScore}/100</div>
+                </div>
+                <div className="bg-accent-theme rounded-xl p-2 text-center">
+                    <div className="text-[10px] font-bold uppercase text-text-secondary">Technical</div>
+                    <div className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">{technicalScore}/100</div>
+                </div>
+                <div className="bg-accent-theme rounded-xl p-2 text-center">
+                    <div className="text-[10px] font-bold uppercase text-text-secondary">Communication</div>
+                    <div className="text-sm font-extrabold text-amber-600 dark:text-amber-400">{communicationScore}/100</div>
+                </div>
+            </div>
+
+            {/* Evaluation Summary preview */}
+            {evaluationSummary && (
+                <p className="text-xs text-text-secondary leading-relaxed line-clamp-2">
+                    {evaluationSummary}
+                </p>
+            )}
+
+            {/* Expanded Strengths & Weaknesses */}
+            {isExpanded && (
+                <div className="pt-2 border-t border-border-theme space-y-2 text-xs">
+                    {strengths && strengths.length > 0 && (
+                        <div className="flex items-start gap-1.5">
+                            <Check size={14} className="text-emerald-500 shrink-0 mt-0.5" />
+                            <div>
+                                <span className="font-bold text-emerald-600 dark:text-emerald-400">Strengths:</span>{' '}
+                                <span className="text-text-secondary">{strengths.join(', ')}</span>
+                            </div>
+                        </div>
+                    )}
+                    {weaknesses && weaknesses.length > 0 && (
+                        <div className="flex items-start gap-1.5">
+                            <AlertCircle size={14} className="text-rose-500 shrink-0 mt-0.5" />
+                            <div>
+                                <span className="font-bold text-rose-500">Areas to Improve:</span>{' '}
+                                <span className="text-text-secondary">{weaknesses.join(', ')}</span>
+                            </div>
+                        </div>
+                    )}
+                    {missingConcepts && missingConcepts.length > 0 && (
+                        <div className="flex items-start gap-1.5">
+                            <Info size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                            <div>
+                                <span className="font-bold text-amber-500">Missing Concepts:</span>{' '}
+                                <span className="text-text-secondary">{missingConcepts.join(', ')}</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
 const InterviewPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -81,10 +178,16 @@ const InterviewPage = () => {
     const [currentDifficulty, setCurrentDifficulty] = useState('Medium');
     const [questionCategory, setQuestionCategory] = useState('');
     const [activeQuestionText, setActiveQuestionText] = useState('');
+    const [topicsCovered, setTopicsCovered] = useState([]);
+    const [latestEvaluation, setLatestEvaluation] = useState(null);
 
     const [isRunningCode, setIsRunningCode] = useState(false);
     const [isSubmittingCode, setIsSubmittingCode] = useState(false);
     const [codeExecutionResult, setCodeExecutionResult] = useState(null);
+
+    const [activeQuestionProblem, setActiveQuestionProblem] = useState(null);
+    const [restoredCode, setRestoredCode] = useState('');
+    const [restoredLanguage, setRestoredLanguage] = useState('python');
 
     const audioRef = useRef(null);
     const audioUrlRef = useRef(null);
@@ -186,6 +289,10 @@ const InterviewPage = () => {
                 const data = await getInterview(id);
                 if (data.currentDifficulty) setCurrentDifficulty(data.currentDifficulty);
                 else if (data.initialDifficulty) setCurrentDifficulty(data.initialDifficulty);
+
+                if (Array.isArray(data.topicsCovered)) {
+                    setTopicsCovered(data.topicsCovered);
+                }
                 
                 if (data.questions && data.questions.length > 0) {
                     setQuestionsList(data.questions);
@@ -194,8 +301,16 @@ const InterviewPage = () => {
                     const currentAIQuestion = aiChats.length > 0 ? aiChats[aiChats.length - 1].content : data.questions[0]?.question;
                     setActiveQuestionText(currentAIQuestion || '');
                     
-                    const answeredCount = data.evaluations ? data.evaluations.length : 0;
+                    const answeredQuestions = (data.questions || []).filter(q => q && q.answer);
+                    const answeredCount = answeredQuestions.length;
                     setCurrentQuestionNum(answeredCount + 1);
+
+                    // Restore latest evaluation if any question answered
+                    if (answeredCount > 0 && answeredQuestions[answeredCount - 1]?.evaluation) {
+                        setLatestEvaluation(answeredQuestions[answeredCount - 1].evaluation);
+                    } else if (data.evaluations && data.evaluations.length > 0) {
+                        setLatestEvaluation(data.evaluations[data.evaluations.length - 1]);
+                    }
                     
                     let currentQuestionObj = null;
                     if (answeredCount === 0) {
@@ -206,6 +321,7 @@ const InterviewPage = () => {
 
                     if (currentQuestionObj) {
                         if (currentQuestionObj.category) setQuestionCategory(currentQuestionObj.category);
+                        if (currentQuestionObj.topic && !currentQuestionObj.category) setQuestionCategory(currentQuestionObj.topic);
                         if (currentQuestionObj.type === 'coding') {
                             setActiveTab('code');
                             if (currentQuestionObj.problem) {
@@ -239,19 +355,20 @@ const InterviewPage = () => {
                     }
                 }
             } catch (error) {
-                console.error("Failed to load interview context.");
+                console.error("Failed to load interview context:", error);
             }
         };
         if (id) loadInitialData();
     }, [id, location.state]);
 
-    const [activeQuestionProblem, setActiveQuestionProblem] = useState(null);
-    const [restoredCode, setRestoredCode] = useState('');
-    const [restoredLanguage, setRestoredLanguage] = useState('python');
-
-    const currentQuestion = questionsList[currentQuestionNum - 1] || null;
-
     const processAnswerResult = (response) => {
+        if (response.evaluation) {
+            setLatestEvaluation(response.evaluation);
+        }
+        if (response.topicsCovered && Array.isArray(response.topicsCovered)) {
+            setTopicsCovered(response.topicsCovered);
+        }
+
         if (response.isCompleted) {
             stopAndCleanupAudio();
             setPhase('farewell');
@@ -261,6 +378,7 @@ const InterviewPage = () => {
         if (response.audio) setAudioBase64(response.audio);
         if (response.currentDifficulty) setCurrentDifficulty(response.currentDifficulty);
         if (response.category) setQuestionCategory(response.category);
+        else if (response.topic) setQuestionCategory(response.topic);
         if (response.totalQuestions) setTotalQuestions(response.totalQuestions);
 
         if (response.problem) {
@@ -278,7 +396,7 @@ const InterviewPage = () => {
             setQuestionsList(prev => [...prev, {
                 question: response.nextQuestion,
                 type: response.questionType || 'technical',
-                category: response.category || 'General',
+                category: response.category || response.topic || 'General',
                 difficulty: response.currentDifficulty,
                 problem: response.problem || null
             }]);
@@ -308,13 +426,18 @@ const InterviewPage = () => {
             }
 
             console.log('[InterviewPage] Before submitAnswer: Dispatching text to AI interviewer...');
-            const response = await submitTextAnswer(id, transcribedString);
+            const questionIdx = currentQuestionNum - 1;
+            const response = await submitTextAnswer(id, transcribedString, questionIdx);
             console.log('[InterviewPage] After API response: AI evaluation received.');
             
             processAnswerResult(response);
         } catch (error) {
             console.error('[InterviewPage] Voice submission failed:', error.message || error);
-            alert('Voice transcription failed. You can use the text tab to submit your answer manually.');
+            if (error.response?.status === 409) {
+                alert('An answer has already been recorded for this question.');
+            } else {
+                alert('Voice transcription failed. You can use the text tab to submit your answer manually.');
+            }
             setPhase('listening');
         }
     };
@@ -324,10 +447,17 @@ const InterviewPage = () => {
         try {
             stopAndCleanupAudio();
             setPhase('thinking');
-            const response = await submitTextAnswer(id, textAnswer);
+            const questionIdx = currentQuestionNum - 1;
+            const response = await submitTextAnswer(id, textAnswer, questionIdx);
             setTextAnswer('');
             processAnswerResult(response);
         } catch (error) {
+            console.error('[InterviewPage] Text submission failed:', error);
+            if (error.response?.status === 409) {
+                alert('An answer has already been recorded for this question.');
+            } else {
+                alert(error.response?.data?.message || 'Failed to submit answer. Please try again.');
+            }
             setPhase('listening');
         }
     };
@@ -357,6 +487,7 @@ const InterviewPage = () => {
             processAnswerResult(response);
         } catch (error) {
             console.error('Code submission failed:', error);
+            alert(error.response?.data?.message || 'Code submission failed.');
             setPhase('listening');
         } finally {
             setIsSubmittingCode(false);
@@ -408,6 +539,18 @@ const InterviewPage = () => {
                         <span className="hidden sm:inline-block px-3 py-1 bg-primary-theme/10 text-primary-theme rounded-full text-xs font-bold border border-primary-theme/20">
                             {questionCategory}
                         </span>
+                    )}
+                    {topicsCovered.length > 0 && (
+                        <div className="hidden lg:flex items-center gap-1.5 ml-1">
+                            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Topics:</span>
+                            <div className="flex flex-wrap gap-1">
+                                {topicsCovered.slice(-3).map((topic, i) => (
+                                    <span key={i} className="px-2 py-0.5 bg-accent-theme text-text-secondary rounded-md text-[10px] font-medium border border-border-theme">
+                                        {topic}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
                     )}
                     {totalQuestions > 0 && (
                         <div className="hidden md:flex items-center gap-2 ml-2">
@@ -475,10 +618,10 @@ const InterviewPage = () => {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-8 h-full">
-                        {/* Left: AI Column / Coding Problem Statement Card */}
-                        <div className="flex flex-col gap-6">
+                        {/* Left: AI Column / Coding Problem Statement Card + Assessment */}
+                        <div className="flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-160px)] pr-1">
                             {activeQuestionProblem ? (
-                                <div className="flex-1 bg-card rounded-3xl border border-border-theme p-6 flex flex-col card-shadow overflow-y-auto text-left space-y-4 max-h-[calc(100vh-180px)]">
+                                <div className="flex-1 bg-card rounded-3xl border border-border-theme p-6 flex flex-col card-shadow overflow-y-auto text-left space-y-4">
                                     <div className="flex items-center justify-between border-b border-border-theme pb-3">
                                         <div className="flex items-center gap-2">
                                             <Code size={20} className="text-primary-theme" />
@@ -552,39 +695,44 @@ const InterviewPage = () => {
                                     )}
                                 </div>
                             ) : (
-                                <div className="flex-1 bg-card rounded-3xl border border-border-theme p-8 flex flex-col items-center justify-center text-center relative card-shadow group overflow-hidden">
+                                <div className="flex-1 bg-card rounded-3xl border border-border-theme p-8 flex flex-col items-center justify-center text-center relative card-shadow group overflow-hidden min-h-[360px]">
                                     <div className="absolute top-0 right-0 p-8 text-text-secondary/5">
                                         <Bot size={180} className="stroke-[0.5]" />
                                     </div>
-                                    <div className="relative z-10 space-y-8 max-w-md">
-                                        <div className={`w-24 h-24 rounded-3xl bg-primary-theme shadow-2xl flex items-center justify-center mx-auto transition-transform duration-500 ${phase === 'speaking' ? 'scale-110' : ''}`}>
-                                            <Bot size={48} className="text-white" />
+                                    <div className="relative z-10 space-y-6 max-w-md">
+                                        <div className={`w-20 h-20 rounded-3xl bg-primary-theme shadow-2xl flex items-center justify-center mx-auto transition-transform duration-500 ${phase === 'speaking' ? 'scale-110' : ''}`}>
+                                            <Bot size={42} className="text-white" />
                                         </div>
-                                        <div className="space-y-4">
-                                            <h3 className="text-2xl font-extrabold text-text-main">Recruitment AI</h3>
+                                        <div className="space-y-3">
+                                            <h3 className="text-xl font-extrabold text-text-main">Recruitment AI</h3>
                                             {activeQuestionText && (
                                                 <div className="p-4 rounded-2xl bg-accent-theme border border-border-theme text-text-main text-sm font-semibold max-h-36 overflow-y-auto shadow-inner leading-relaxed text-left">
                                                     "{activeQuestionText}"
                                                 </div>
                                             )}
-                                            <div className={`min-h-[60px] flex items-center justify-center ${phase === 'speaking' ? 'animate-in fade-in duration-700' : ''}`}>
+                                            <div className={`min-h-[40px] flex items-center justify-center ${phase === 'speaking' ? 'animate-in fade-in duration-700' : ''}`}>
                                                 {phase === 'speaking' ? (
                                                     <div className="flex gap-1.5 items-center">
                                                         {[...Array(5)].map((_, i) => (
-                                                            <div key={i} className={`w-1.5 bg-primary-theme rounded-full animate-bounce [animation-delay:${i * 0.1}s]`} style={{ height: `${Math.random() * 40 + 20}px` }} />
+                                                            <div key={i} className={`w-1.5 bg-primary-theme rounded-full animate-bounce [animation-delay:${i * 0.1}s]`} style={{ height: `${Math.random() * 30 + 15}px` }} />
                                                         ))}
                                                     </div>
                                                 ) : (
-                                                    <p className="text-text-secondary text-sm leading-relaxed font-medium">Ready for your response</p>
+                                                    <p className="text-text-secondary text-xs leading-relaxed font-medium">Ready for your response</p>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="absolute bottom-6 left-6 flex items-center gap-2 text-xs font-bold text-text-secondary bg-accent-theme px-3 py-1.5 rounded-full border border-border-theme uppercase tracking-widest">
+                                    <div className="absolute bottom-4 left-6 flex items-center gap-2 text-[10px] font-bold text-text-secondary bg-accent-theme px-3 py-1 rounded-full border border-border-theme uppercase tracking-widest">
                                         <Volume2 size={12} />
                                         Spatial Audio Active
                                     </div>
                                 </div>
+                            )}
+
+                            {/* Evaluation Feedback from Previous Answer */}
+                            {latestEvaluation && (
+                                <EvaluationFeedbackCard evaluation={latestEvaluation} />
                             )}
                         </div>
 

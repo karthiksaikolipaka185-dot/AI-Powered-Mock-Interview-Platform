@@ -53,8 +53,12 @@ export const startInterview = async (interviewId, role, resumeText, totalQuestio
     return response.data.data;
 };
 
-export const submitTextAnswer = async (interviewId, answer) => {
-    const response = await api.post(`/interview/${interviewId}/answer`, { answer });
+export const submitTextAnswer = async (interviewId, answer, questionIndex = undefined) => {
+    const payload = { answer };
+    if (questionIndex !== undefined) {
+        payload.questionIndex = questionIndex;
+    }
+    const response = await api.post(`/interview/${interviewId}/answer`, payload);
     return response.data.data !== undefined ? response.data.data : response.data;
 };
 
@@ -71,9 +75,12 @@ export const transcribeAudio = async (audioBlob) => {
     return response.data.data !== undefined ? response.data.data : response.data;
 };
 
-export const submitVoiceAnswer = async (interviewId, audioBlob) => {
+export const submitVoiceAnswer = async (interviewId, audioBlob, questionIndex = undefined) => {
     const formData = new FormData();
     formData.append('file', audioBlob, 'answer.webm');
+    if (questionIndex !== undefined) {
+        formData.append('questionIndex', questionIndex);
+    }
     
     console.log(`[interviewService] Submitting voice answer for interview ${interviewId}...`);
     const response = await api.post(`/interview/${interviewId}/voice-answer`, formData, {
@@ -118,6 +125,7 @@ export default {
     submitVoiceAnswer,
     runCode,
     submitCode,
+    saveCode,
     endInterview,
     getInterview
 };

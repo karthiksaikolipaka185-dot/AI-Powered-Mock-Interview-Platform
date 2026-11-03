@@ -93,26 +93,74 @@ Format response strictly as valid JSON:
 }
 `;
 
-const EVALUATE_ANSWER_PROMPT = (currentQuestion, userAnswer, role, currentDifficulty) => `
-You are an expert technical interviewer evaluating a candidate's response for the role of ${role} at difficulty level ${currentDifficulty}.
+const EVALUATE_ANSWER_PROMPT = (...args) => {
+    let params;
+    if (typeof args[0] === 'object' && args[0] !== null) {
+        params = args[0];
+    } else {
+        // Legacy parameter order: (currentQuestion, userAnswer, role, currentDifficulty)
+        params = {
+            questionText: args[0],
+            answerText: args[1],
+            jobRole: args[2],
+            currentDifficulty: args[3],
+            resumeSummary: '',
+            topic: 'General',
+            type: 'technical',
+            answeredCount: 0,
+            avgTechnicalScore: 0,
+            topicsCovered: [],
+            weaknesses: []
+        };
+    }
 
-Question Asked:
-"${currentQuestion}"
+    const {
+        jobRole,
+        currentDifficulty,
+        resumeSummary,
+        questionText,
+        topic,
+        type,
+        answerText,
+        answeredCount = 0,
+        avgTechnicalScore = 0,
+        topicsCovered = [],
+        weaknesses = []
+    } = params;
 
-Candidate's Answer:
-"${userAnswer}"
+    return `You are an expert technical interviewer evaluating a candidate's answer.
 
-Evaluate the response objectively. Return strictly valid JSON:
+JOB ROLE: ${jobRole}
+INTERVIEW DIFFICULTY: ${currentDifficulty}
+CANDIDATE RESUME SUMMARY: ${resumeSummary || 'No candidate resume available'}
+
+QUESTION ASKED: ${questionText}
+QUESTION TOPIC: ${topic || 'General'}
+QUESTION TYPE: ${type || 'technical'}
+
+CANDIDATE'S ANSWER: ${answerText}
+
+PREVIOUS PERFORMANCE SUMMARY:
+- Questions answered so far: ${answeredCount}
+- Average technical score: ${avgTechnicalScore}
+- Topics covered: ${(topicsCovered || []).join(', ')}
+- Identified weaknesses: ${(weaknesses || []).join(', ')}
+
+Evaluate the answer and respond with ONLY valid JSON (no markdown, no explanation):
 {
-  "technicalScore": <number 0-10>,
-  "communicationScore": <number 0-10>,
-  "overallScore": <number 0-10>,
-  "strengths": ["short string strength"],
-  "weaknesses": ["short string weakness"],
-  "conceptsMissed": ["concept"],
-  "depthRating": "<Weak|Moderate|Strong|Exceptional>"
-}
-`;
+  "technicalScore": <0-100>,
+  "communicationScore": <0-100>,
+  "relevanceScore": <0-100>,
+  "depthScore": <0-100>,
+  "overallScore": <0-100>,
+  "strengths": ["..."],
+  "weaknesses": ["..."],
+  "missingConcepts": ["..."],
+  "areasForFurtherAssessment": ["..."],
+  "evaluationSummary": "...",
+  "topicsCovered": ["..."]
+}`;
+};
 
 const RESUME_ANALYSIS_PROMPT = (rawText) => `
 You are an expert technical recruiter analyzing a candidate's resume text.
@@ -175,38 +223,97 @@ Return strictly valid JSON:
 }
 `;
 
-const GENERATE_ADAPTIVE_QUESTION_PROMPT = (role, currentDifficulty, blueprintJson, trackerJson, lastEvalJson, conversationHistory, currentQuestionNum, totalQuestions, parsedResumeJson) => `
-You are an adaptive AI interviewer evaluating a candidate for the role of "${role}".
-Current Interview State:
-- Adaptive Difficulty: ${currentDifficulty}
-- Question Number: ${currentQuestionNum} of ${totalQuestions}
-- Interview Blueprint: ${JSON.stringify(blueprintJson)}
-- Accumulated Performance: ${JSON.stringify(trackerJson)}
-- Last Answer Evaluation: ${JSON.stringify(lastEvalJson)}
-${parsedResumeJson ? `- Structured Candidate Resume Intelligence: ${JSON.stringify(parsedResumeJson)}` : ''}
+const GENERATE_ADAPTIVE_QUESTION_PROMPT = (...args) => {
+    let params;
+    if (typeof args[0] === 'object' && args[0] !== null) {
+        params = args[0];
+    } else {
+        // Legacy parameter order:
+        // (role, currentDifficulty, blueprintJson, trackerJson, lastEvalJson, conversationHistory, currentQuestionNum, totalQuestions, parsedResumeJson)
+        params = {
+            jobRole: args[0],
+            currentDifficulty: args[1],
+            blueprint: args[2],
+            performanceTracker: args[3],
+            lastEval: args[4],
+            conversationHistory: args[5],
+            currentQuestionNumber: args[6],
+            totalQuestions: args[7],
+            parsedResumeJson: args[8]
+        };
+    }
 
-Recent Conversation History:
-${conversationHistory}
+    const {
+        jobRole,
+        interviewType = 'Technical Interview',
+        initialDifficulty = 'Medium',
+        currentDifficulty = 'Medium',
+        currentQuestionNumber = 1,
+        totalQuestions = 5,
+        resumeText = '',
+        blueprint = {},
+        previousQAs = [],
+        topicsCovered = [],
+        remainingTopics = [],
+        performanceTrend = 'stable',
+        weakAreas = [],
+        resumeProject = null
+    } = params;
 
-Task:
-Determine the NEXT question to ask the candidate.
-Rules:
-1. Check "blueprint.topics" status ("not_covered", "partially_covered", "covered"). Prioritize topics marked "not_covered" or "partially_covered" over topics marked "covered".
-2. If candidate's last evaluation shows weakness (overallScore < 5.5), target the missing concept or weak area with a follow-up probing question at moderate difficulty.
-3. If candidate's last evaluation was strong (overallScore >= 8.0), advance to an uncovered or higher-level topic in the blueprint.
-4. If candidate's resume contains specific projects or verifiable metric claims and "Behavioral & Resume Deep Dive" is not covered, generate a specific deep-dive question probing their architectural role, tech choices, or metrics in that project.
-5. If this is question #${totalQuestions - 1} or near the end and coding has not been covered, output a coding question.
-6. Do NOT repeat any question present in the conversation history. Keep the question crisp, natural, professional, and conversational.
+    const formattedPreviousQAs = previousQAs.length > 0
+        ? previousQAs.map((q, i) => `
+Q${i+1} [${q.topic || q.category || 'General'}] [${q.difficulty || currentDifficulty}]: ${q.question}
+Answer: ${q.answer || 'No answer provided'}
+Evaluation: Technical=${q.evaluation?.technicalScore ?? 'N/A'}, Communication=${q.evaluation?.communicationScore ?? 'N/A'}
+Strengths: ${(q.evaluation?.strengths || []).join(', ')}
+Weaknesses: ${(q.evaluation?.weaknesses || []).join(', ')}
+Missing: ${(q.evaluation?.missingConcepts || []).join(', ')}
+`).join('\n')
+        : 'None yet (First adaptive question).';
 
-Return ONLY a valid JSON object:
+    return `You are an expert adaptive technical interviewer.
+
+INTERVIEW CONTEXT:
+- Job Role: ${jobRole}
+- Interview Type: ${interviewType}
+- Initial Difficulty: ${initialDifficulty}  
+- Current Adaptive Difficulty: ${currentDifficulty}
+- Question ${currentQuestionNumber} of ${totalQuestions}
+
+CANDIDATE RESUME:
+${resumeText || 'No resume text available.'}
+
+INTERVIEW BLUEPRINT:
+${typeof blueprint === 'object' ? JSON.stringify(blueprint) : (blueprint || '{}')}
+
+PREVIOUS QUESTIONS AND ANSWERS:
+${formattedPreviousQAs}
+
+TOPICS ALREADY COVERED: ${(topicsCovered || []).join(', ')}
+TOPICS REMAINING: ${(remainingTopics || []).join(', ')}
+
+PERFORMANCE TREND: ${performanceTrend} (improving/declining/stable)
+CURRENT WEAK AREAS: ${(weakAreas || []).join(', ')}
+
+INSTRUCTIONS:
+1. Generate ONE interview question appropriate for ${currentDifficulty} difficulty
+2. Do NOT repeat any question already asked (see previous questions above)
+3. Do NOT ask about topics already sufficiently covered unless exploring a weakness
+4. If the candidate showed weakness in ${(weakAreas || []).slice(0, 2).join(', ') || 'an area'}, probe deeper with an appropriate question
+5. If the candidate mentioned ${resumeProject || 'a key project'}, ask a relevant follow-up
+6. Move to remaining topics: ${(remainingTopics || []).join(', ')}
+7. The question should naturally follow from the conversation
+
+Respond with ONLY valid JSON:
 {
-  "question": "Question text to ask verbally...",
-  "type": "<behavioral|technical|coding|resume>",
-  "category": "Topic category",
-  "recommendedDifficulty": "<Easy|Medium|Hard>",
-  "adaptationReason": "Brief internal explanation of why this question was selected"
-}
-`;
+  "question": "...",
+  "topic": "...",
+  "type": "technical|behavioral|situational",
+  "difficulty": "Easy|Medium|Hard",
+  "purpose": "why this question is being asked",
+  "followUpOf": null
+}`;
+};
 
 const EVALUATE_CODE_PROMPT = (question, code) => `
 Evaluate the following code submission for the question: "${question}".

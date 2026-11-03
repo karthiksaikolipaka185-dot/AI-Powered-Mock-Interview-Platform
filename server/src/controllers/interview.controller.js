@@ -59,11 +59,15 @@ const startInterviewController = async (req, res, next) => {
 
 const submitTextAnswer = async (req, res, next) => {
     try {
-        const { answer } = req.body;
+        const { answer, questionIndex } = req.body;
         const { id } = req.params;
-        const result = await submitAnswer(id, answer);
+        const userId = req.user?.userId || req.user?._id || req.user?.id;
+        const result = await submitAnswer(id, answer, questionIndex, userId);
         return res.status(200).json({ success: true, data: result });
     } catch (error) {
+        if (error.statusCode === 409) {
+            return res.status(409).json({ success: false, message: error.message });
+        }
         next(error);
     }
 };
@@ -71,6 +75,9 @@ const submitTextAnswer = async (req, res, next) => {
 const submitVoiceAnswer = async (req, res, next) => {
     try {
         const { id } = req.params;
+        const { questionIndex } = req.body;
+        const userId = req.user?.userId || req.user?._id || req.user?.id;
+
         if (!req.file) {
             console.error('[VoiceSubmit] Missing audio file in request');
             return res.status(400).json({ success: false, message: 'Audio file required to transcribe and submit voice answer' });
@@ -90,11 +97,14 @@ const submitVoiceAnswer = async (req, res, next) => {
         
         // Pass text to submitAnswer
         console.log('[VoiceSubmit] Sending transcribed text to AI engine...');
-        const result = await submitAnswer(id, transcribedText);
+        const result = await submitAnswer(id, transcribedText, questionIndex, userId);
         console.log('[VoiceSubmit] AI Response generated successfully');
 
         return res.status(200).json({ success: true, data: result });
     } catch (error) {
+        if (error.statusCode === 409) {
+            return res.status(409).json({ success: false, message: error.message });
+        }
         console.error('[VoiceSubmit] Pipeline error:', error.message || error);
         next(error);
     }

@@ -67,23 +67,35 @@ const interviewSchema = new mongoose.Schema({
     },
     initialDifficulty: {
         type: String,
+        enum: ['Easy', 'Medium', 'Hard'],
         default: 'Medium'
     },
     currentDifficulty: {
         type: String,
+        enum: ['Easy', 'Medium', 'Hard'],
         default: 'Medium'
     },
+    topicsCovered: [{
+        type: String
+    }],
     totalQuestions: {
         type: Number,
         default: 5
     },
     blueprint: {
         type: mongoose.Schema.Types.Mixed,
-        default: null
+        default: {}
     },
     performanceTracker: {
         type: mongoose.Schema.Types.Mixed,
         default: () => ({
+            recentScores: [],
+            averageScore: 0,
+            weakAreas: [],
+            strongAreas: [],
+            totalAnswered: 0,
+            codingScore: null,
+            codingStatus: null,
             strengths: [],
             weaknesses: [],
             categoryScores: {},
