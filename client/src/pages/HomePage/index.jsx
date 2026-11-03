@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { getHistory } from '../../services/historyService';
 import authService from '../../services/authService';
 import FeedbackModal from '../../components/FeedbackModal';
-import SkillDashboard from '../../components/SkillDashboard';
 import { 
     Plus, 
     BarChart2, 
@@ -253,10 +252,6 @@ const HomePage = () => {
                             colorClass="bg-indigo-500/10 text-indigo-500" 
                         />
                     </div>
-                </section>
-
-                <section>
-                    <SkillDashboard />
                 </section>
 
                 <section className="space-y-4">

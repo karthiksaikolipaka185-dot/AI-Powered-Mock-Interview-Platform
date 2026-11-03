@@ -6,7 +6,6 @@ const authRoutes = require('./auth.routes');
 const feedbackRoutes = require('./feedback.routes');
 const dashboardRoutes = require('./dashboard.routes');
 const adminRoutes = require('./admin.routes');
-const skillRoutes = require('./skill.routes');
 const { getHealthStatus } = require('../controllers/health.controller');
 
 const router = express.Router();
@@ -20,7 +19,6 @@ router.use('/resume', resumeRoutes);
 router.use('/interview', interviewRoutes);
 router.use('/history', historyRoutes);
 router.use('/feedback', feedbackRoutes);
-router.use('/skills', skillRoutes);
 
 // Admin & Dashboard Feature Routes
 router.use('/dashboard', dashboardRoutes);
