@@ -139,9 +139,23 @@ const AuthPage = () => {
             } else {
                 response = await authService.register(formData);
                 if (response.success) {
-                    setSuccess(response.message || 'Account created successfully! Please check your email inbox to verify your account.');
                     setIsLogin(true); // Switch to login view
                     setFormData({ name: '', email: formData.email, password: '' });
+
+                    // If the verification email failed to send, show a warning and
+                    // pre-expose the resend button so the user can trigger it immediately.
+                    if (response.emailSent === false) {
+                        setError(
+                            'Account created, but we could not send the verification email right now. ' +
+                            'Please verify your email before logging in. ' +
+                            'Use "Resend Verification Email" below to request a new link.'
+                        );
+                    } else {
+                        setSuccess(
+                            response.message ||
+                            'Account created successfully! Please check your email inbox to verify your account before logging in.'
+                        );
+                    }
                 }
             }
         } catch (err) {

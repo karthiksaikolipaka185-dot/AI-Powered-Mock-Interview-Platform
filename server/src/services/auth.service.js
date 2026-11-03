@@ -84,14 +84,25 @@ const register = async (name, email, password) => {
         verificationTokenExpires
     });
 
-    // 7. Dispatch Verification Email
-    sendEmailVerificationLink(user.email, verificationToken).catch(err => {
+    // 7. Dispatch Verification Email — await so we can surface send status to the caller
+    let emailSendResult = { sent: false, error: 'Not attempted' };
+    try {
+        emailSendResult = await sendEmailVerificationLink(user.email, verificationToken);
+        if (!emailSendResult.sent) {
+            console.error('[AuthService] Verification email failed to send:', emailSendResult.error);
+        }
+    } catch (err) {
         console.error('[AuthService] Verification email send error:', err.message);
-    });
+        emailSendResult = { sent: false, error: err.message };
+    }
 
     return {
         requiresVerification: true,
-        message: 'Account created successfully! Please verify your email before logging in.',
+        emailSent: emailSendResult.sent,
+        emailError: emailSendResult.sent ? undefined : emailSendResult.error,
+        message: emailSendResult.sent
+            ? 'Account created successfully! Please check your email inbox to verify your account before logging in.'
+            : 'Account created successfully! However, we could not send the verification email right now. Please use "Resend Verification Email" on the login page.',
         user: { id: user._id, name: user.name, email: user.email, isVerified: false }
     };
 };
@@ -247,10 +258,26 @@ const resendVerificationToken = async (email) => {
     user.verificationTokenExpires = verificationTokenExpires;
     await user.save();
 
-    // Dispatch SendGrid Email
-    sendEmailVerificationLink(user.email, verificationToken).catch(err => {
+    // Dispatch SendGrid Email — await to surface send status
+    let emailResult = { sent: false, error: 'Not attempted' };
+    try {
+        emailResult = await sendEmailVerificationLink(user.email, verificationToken);
+        if (!emailResult.sent) {
+            console.error('[AuthService] Resend verification email failed:', emailResult.error);
+        }
+    } catch (err) {
         console.error('[AuthService] Resend verification email error:', err.message);
-    });
+        emailResult = { sent: false, error: err.message };
+    }
+
+    if (!emailResult.sent) {
+        const resendError = new Error(
+            'We could not send the verification email right now due to a mail service issue. Please try again later.'
+        );
+        resendError.statusCode = 503;
+        resendError.emailError = emailResult.error;
+        throw resendError;
+    }
 
     return {
         success: true,

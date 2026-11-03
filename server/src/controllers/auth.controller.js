@@ -12,10 +12,12 @@ const registerUser = async (req, res, next) => {
         }
 
         const data = await authService.register(name, email, password);
-        
+
         return res.status(201).json({
             success: true,
             message: data.message || 'User registered successfully. Please verify your email.',
+            emailSent: data.emailSent,
+            requiresVerification: data.requiresVerification,
             data
         });
     } catch (error) {

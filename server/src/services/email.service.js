@@ -14,8 +14,8 @@ const maskEmail = (email) => {
     const parts = email.split('@');
     if (parts.length !== 2) return '***';
     const [name, domain] = parts;
-    const maskedName = name.length > 2 
-        ? `${name[0]}***${name[name.length - 1]}` 
+    const maskedName = name.length > 2
+        ? `${name[0]}***${name[name.length - 1]}`
         : `${name[0]}***`;
     return `${maskedName}@${domain}`;
 };
@@ -53,6 +53,10 @@ const auditEmailConfiguration = () => {
 
 /**
  * Core helper to send transactional email using SendGrid Web API.
+ *
+ * Returns:
+ *   { sent: true, statusCode }          on success (HTTP 202 accepted by SendGrid)
+ *   { sent: false, statusCode, error }  on failure with a human-readable error string
  */
 const sendSendGridEmail = async ({ to, subject, html, text }) => {
     const sender = getSenderEmail();
@@ -66,6 +70,11 @@ const sendSendGridEmail = async ({ to, subject, html, text }) => {
     if (!sender || !sender.trim()) {
         console.error('[EmailService] SendGrid configuration incomplete. Missing sender email (EMAIL_FROM).');
         return { sent: false, error: 'SendGrid sender email (EMAIL_FROM) missing' };
+    }
+
+    if (!to || typeof to !== 'string' || !to.includes('@')) {
+        console.error(`[EmailService] Invalid recipient email address provided: "${to}"`);
+        return { sent: false, error: 'Invalid recipient email address' };
     }
 
     const maskedRecipient = maskEmail(to);
@@ -86,7 +95,7 @@ const sendSendGridEmail = async ({ to, subject, html, text }) => {
     try {
         const [response] = await sgMail.send(msg);
         const statusCode = response ? response.statusCode : 202;
-        
+
         console.log(`[EmailService] Verification email request accepted by SendGrid (HTTP ${statusCode})`);
         console.log(`Provider: SendGrid`);
         console.log(`Recipient: ${maskedRecipient}`);
@@ -94,31 +103,69 @@ const sendSendGridEmail = async ({ to, subject, html, text }) => {
         return { sent: true, statusCode };
     } catch (error) {
         const statusCode = error.code || (error.response && error.response.statusCode) || 500;
-        const errorMessage = error.response && error.response.body && error.response.body.errors 
-            ? JSON.stringify(error.response.body.errors) 
-            : error.message;
+
+        // Extract SendGrid error details
+        const sgErrors = error.response && error.response.body && error.response.body.errors;
+        const firstSgError = sgErrors && sgErrors[0];
+        const sgErrorMessage = firstSgError ? firstSgError.message : null;
+        const rawErrorMessage = error.message || 'Unknown error';
+        const errorMessage = sgErrors ? JSON.stringify(sgErrors) : rawErrorMessage;
 
         console.error(`[EmailService] SendGrid email dispatch error`);
         console.error(`Status: ${statusCode}`);
 
+        // Classify and log the specific SendGrid error
         if (statusCode === 401) {
-            console.error(`Error: SendGrid API key invalid, revoked, expired, or incorrectly configured.`);
+            if (sgErrorMessage && sgErrorMessage.toLowerCase().includes('maximum credits exceeded')) {
+                console.error('Error: SendGrid account has exceeded its maximum email credits/quota.');
+                console.error('Resolution: Upgrade the SendGrid plan, wait for the quota reset, or generate a new valid API key.');
+                return {
+                    sent: false,
+                    statusCode,
+                    error: 'SendGrid email quota exceeded. Please contact support or check your SendGrid account.',
+                    code: 'SENDGRID_QUOTA_EXCEEDED'
+                };
+            }
+            console.error('Error: SendGrid API key invalid, revoked, expired, or incorrectly configured.');
+            return {
+                sent: false,
+                statusCode,
+                error: 'SendGrid API key is invalid or revoked.',
+                code: 'SENDGRID_AUTH_FAILED'
+            };
         } else if (statusCode === 403) {
-            console.error(`Error: SendGrid sender identity (${sender}) not verified or account restricted.`);
+            console.error(`Error: SendGrid sender identity (${maskEmail(sender)}) not verified or account restricted.`);
+            return {
+                sent: false,
+                statusCode,
+                error: 'SendGrid sender identity not verified. Verify the sender email in your SendGrid account.',
+                code: 'SENDGRID_SENDER_NOT_VERIFIED'
+            };
         } else {
             console.error(`Error: ${errorMessage}`);
+            return { sent: false, statusCode, error: errorMessage };
         }
-
-        return { sent: false, statusCode, error: errorMessage };
     }
 };
 
 /**
  * Send email verification link after candidate registration.
+ *
+ * @param {string} userEmail  - The exact email address the user registered with.
+ * @param {string} verificationToken - The secure verification token from the database.
  */
 const sendEmailVerificationLink = async (userEmail, verificationToken) => {
+    // Guard: never accept a falsy or obviously wrong recipient
+    if (!userEmail || typeof userEmail !== 'string' || !userEmail.includes('@')) {
+        console.error(`[EmailService] sendEmailVerificationLink called with invalid recipient: "${userEmail}"`);
+        return { sent: false, error: 'Invalid recipient email passed to sendEmailVerificationLink' };
+    }
+
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
     const verificationLink = `${clientUrl}/verify-email/${verificationToken}`;
+
+    console.log(`[EmailService] Preparing verification email for ${maskEmail(userEmail)}`);
+    console.log(`[EmailService] Verification URL base: ${clientUrl}`);
 
     const html = `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
@@ -126,32 +173,32 @@ const sendEmailVerificationLink = async (userEmail, verificationToken) => {
                 <h1 style="color: #4f46e5; font-size: 24px; font-weight: 800; margin: 0;">MockInterview Platform</h1>
                 <p style="color: #64748b; font-size: 14px; margin-top: 4px;">AI-Powered Mock Interview Platform</p>
             </div>
-            
+
             <h2 style="color: #1e293b; font-size: 20px; font-weight: 700; margin-bottom: 16px;">Verify your MockInterview account</h2>
-            
+
             <p style="color: #334155; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
                 Welcome to MockInterview! Please verify your email address to activate your account and start practicing with your personalized AI interviewer.
             </p>
-            
+
             <div style="margin: 32px 0; text-align: center;">
                 <a href="${verificationLink}" target="_blank" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);">
                     Verify Email Address
                 </a>
             </div>
-            
+
             <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin-bottom: 16px;">
                 If the button above does not work, copy and paste this verification URL into your browser:<br/>
                 <a href="${verificationLink}" style="color: #4f46e5; word-break: break-all;">${verificationLink}</a>
             </p>
-            
+
             <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; line-height: 1.5;">
                 <p style="margin-bottom: 8px;"><strong>Token Expiration:</strong> This verification link will expire in 24 hours.</p>
-                <p style="margin: 0;"><strong>Security Notice:</strong> If you did not create an account on MockInterview, you can safely ignore this email.</p>
+                <p style="margin: 0;"><strong>Security Notice:</strong> If you did not create an account on MockInterview, you can safely ignore this email. No action is required.</p>
             </div>
         </div>
     `;
 
-    const text = `Verify your MockInterview account\n\nPlease verify your email address by visiting the following link:\n${verificationLink}\n\nThis link expires in 24 hours.`;
+    const text = `Verify your MockInterview account\n\nPlease verify your email address by visiting the following link:\n${verificationLink}\n\nThis link expires in 24 hours.\n\nIf you did not create an account on MockInterview, you can safely ignore this email.`;
 
     const result = await sendSendGridEmail({
         to: userEmail,
@@ -164,7 +211,8 @@ const sendEmailVerificationLink = async (userEmail, verificationToken) => {
         sent: result.sent,
         statusCode: result.statusCode,
         verificationLink,
-        error: result.error
+        error: result.error,
+        code: result.code
     };
 };
 
@@ -252,4 +300,3 @@ module.exports = {
     sendFeedbackEmailNotification,
     sendPasswordResetEmail
 };
-
