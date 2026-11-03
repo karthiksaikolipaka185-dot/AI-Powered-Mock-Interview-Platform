@@ -2,7 +2,7 @@ const Interview = require('../models/Interview.model');
 const Resume = require('../models/Resume.model');
 const { askGroq } = require('./groq.service');
 const { parseAIResponse: parseAIJSON } = require('../utils/prompts.utils');
-const { getCodingProblemById, getPublicProblemDefinition } = require('../constants/codingQuestions');
+const { getProblemByDifficulty, getProblemById, getSafeProblemForFrontend } = require('./codingProblem.service');
 const { evaluateInterviewResumeEvidence } = require('./evidenceValidation.service');
 
 // Assuming murf.service will be created, mock its failure safely for now if missing
@@ -52,6 +52,22 @@ const isDuplicateQuestion = (newQuestionText, askedQuestionsArray) => {
         }
         return false;
     });
+};
+
+
+const selectCodingProblem = (interviewDoc) => {
+    let problemObj = null;
+    if (interviewDoc.codingProblemId) {
+        problemObj = getProblemById(interviewDoc.codingProblemId);
+    }
+    if (!problemObj) {
+        const diff = interviewDoc.currentDifficulty || interviewDoc.initialDifficulty || 'Medium';
+        const usedIds = (interviewDoc.questions || []).filter(q => q && q.problem && q.problem.id).map(q => q.problem.id);
+        problemObj = getProblemByDifficulty(diff, usedIds);
+        interviewDoc.codingProblemId = problemObj.id;
+        interviewDoc.codingProblemDifficulty = problemObj.difficulty;
+    }
+    return problemObj;
 };
 
 const startInterview = async (interviewId, userId, role, resumeText, userName, totalQuestionsRaw, difficulty = 'Medium') => {
@@ -324,8 +340,8 @@ const submitAnswer = async (interviewId, userAnswer) => {
                          (targetTotalQuestions === 15 && questionsAnswered === 7);
 
     if (isCodingSlot) {
-        const problemObj = getCodingProblemById('two-sum');
-        codingProblem = getPublicProblemDefinition(problemObj);
+        const problemObj = selectCodingProblem(interview);
+        codingProblem = getSafeProblemForFrontend(problemObj);
         nextQuestionText = `Coding Challenge: ${problemObj.title}\n\n${problemObj.description}`;
         questionType = 'coding';
         questionCategory = 'Problem Solving & Coding';
@@ -371,8 +387,8 @@ const submitAnswer = async (interviewId, userAnswer) => {
         }
 
         if (questionType === 'coding') {
-            const problemObj = getCodingProblemById('two-sum');
-            codingProblem = getPublicProblemDefinition(problemObj);
+            const problemObj = selectCodingProblem(interview);
+        codingProblem = getSafeProblemForFrontend(problemObj);
             nextQuestionText = `Coding Challenge: ${problemObj.title}\n\n${problemObj.description}`;
             questionCategory = 'Problem Solving & Coding';
         }
@@ -449,7 +465,7 @@ const submitAnswer = async (interviewId, userAnswer) => {
 
 const { runTestCases } = require('./execution.service');
 
-const runCode = async (interviewId, code, language, problemId = 'two-sum', userId = null) => {
+const runCode = async (interviewId, code, language, problemId = null, userId = null) => {
     const query = userId ? { _id: interviewId, userId } : { _id: interviewId };
     const interview = await Interview.findOne(query);
     if (!interview) {
@@ -458,8 +474,24 @@ const runCode = async (interviewId, code, language, problemId = 'two-sum', userI
         throw error;
     }
 
-    const problem = getCodingProblemById(problemId);
-    const publicResults = await runTestCases(code, language, problem.publicTestCases || []);
+    const activeProblemId = problemId || interview.codingProblemId || 'prob_001';
+    const problem = getProblemById(activeProblemId);
+    if (!problem) {
+        const error = new Error('Coding problem not found');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    // Save candidate draft code and language
+    interview.codingCurrentCode = code;
+    interview.codingLanguage = language;
+    if (!interview.codingProblemId) {
+        interview.codingProblemId = problem.id;
+        interview.codingProblemDifficulty = problem.difficulty;
+    }
+    await interview.save();
+
+    const publicResults = await runTestCases(code, language, problem.publicTestCases || [], problem);
 
     if (publicResults.hasExecutionFailure) {
         return {
@@ -478,7 +510,7 @@ const runCode = async (interviewId, code, language, problemId = 'two-sum', userI
     };
 };
 
-const submitCode = async (interviewId, code, language, problemId = 'two-sum', userId = null) => {
+const submitCode = async (interviewId, code, language, problemId = null, userId = null) => {
     // Fetch interview with strict ownership authorization
     const query = userId ? { _id: interviewId, userId } : { _id: interviewId };
     const interview = await Interview.findOne(query);
@@ -488,13 +520,19 @@ const submitCode = async (interviewId, code, language, problemId = 'two-sum', us
         throw error;
     }
 
-    const problem = getCodingProblemById(problemId);
+    const activeProblemId = problemId || interview.codingProblemId || 'prob_001';
+    const problem = getProblemById(activeProblemId);
+    if (!problem) {
+        const error = new Error('Coding problem not found');
+        error.statusCode = 404;
+        throw error;
+    }
     
     // 1. Execute against public test cases
-    const publicResults = await runTestCases(code, language, problem.publicTestCases || []);
+    const publicResults = await runTestCases(code, language, problem.publicTestCases || [], problem);
 
     // 2. Execute against hidden test cases (inputs/outputs remain server-side!)
-    const hiddenResults = await runTestCases(code, language, problem.hiddenTestCases || []);
+    const hiddenResults = await runTestCases(code, language, problem.hiddenTestCases || [], problem);
 
     // Graceful Failure Guard: If execution service itself failed, do NOT save or advance interview
     if (publicResults.hasExecutionFailure || hiddenResults.hasExecutionFailure) {
@@ -655,6 +693,28 @@ const submitCode = async (interviewId, code, language, problemId = 'two-sum', us
     };
 };
 
+
+const saveCode = async (interviewId, code, language, problemId = null, userId = null) => {
+    const query = userId ? { _id: interviewId, userId } : { _id: interviewId };
+    const interview = await Interview.findOne(query);
+    if (!interview) {
+        const error = new Error('Interview not found');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    interview.codingCurrentCode = code || '';
+    if (language) interview.codingLanguage = language;
+    if (problemId) interview.codingProblemId = problemId;
+
+    await interview.save();
+    return {
+        success: true,
+        message: 'Code draft saved',
+        savedAt: new Date()
+    };
+};
+
 const endInterview = async (interviewId, userId) => {
     // Fetch interview
     const interview = await Interview.findOne({ _id: interviewId, userId });
@@ -730,14 +790,34 @@ const endInterview = async (interviewId, userId) => {
 };
 
 const getInterviewById = async (interviewId, userId) => {
-    // Fetch interview by ID and userId explicitly returning full interview data limits securely 
     const interview = await Interview.findOne({ _id: interviewId, userId });
     if (!interview) {
         const error = new Error('Interview not found');
         error.statusCode = 404;
         throw error;
     }
-    return interview;
+    const interviewObj = interview.toObject ? interview.toObject() : interview;
+
+    // Attach safe problem definition if codingProblemId is present
+    if (interviewObj.codingProblemId) {
+        const problem = getProblemById(interviewObj.codingProblemId);
+        if (problem) {
+            interviewObj.codingProblem = getSafeProblemForFrontend(problem);
+        }
+    }
+
+    // Strip any hiddenTestCases from questions array to prevent exposure
+    if (Array.isArray(interviewObj.questions)) {
+        interviewObj.questions = interviewObj.questions.map(q => {
+            if (q && q.problem && q.problem.hiddenTestCases) {
+                const { hiddenTestCases, ...safeProb } = q.problem;
+                return { ...q, problem: safeProb };
+            }
+            return q;
+        });
+    }
+
+    return interviewObj;
 };
 
 /**
@@ -811,6 +891,7 @@ module.exports = {
     submitAnswer,
     runCode,
     submitCode,
+    saveCode,
     endInterview,
     getInterviewById
 };

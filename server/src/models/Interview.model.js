@@ -27,6 +27,36 @@ const interviewSchema = new mongoose.Schema({
         type: Array,
         default: []
     },
+    codingProblemId: {
+        type: String,
+        default: null
+    },
+    codingProblemDifficulty: {
+        type: String,
+        default: null
+    },
+    codingCurrentCode: {
+        type: String,
+        default: ''
+    },
+    codingLanguage: {
+        type: String,
+        default: 'python'
+    },
+    codingSubmitted: {
+        type: Boolean,
+        default: false
+    },
+    codingEvaluationSummary: {
+        totalTests: Number,
+        passed: Number,
+        failed: Number,
+        status: {
+            type: String,
+            default: null
+        },
+        error: String
+    },
     feedback: {
         type: mongoose.Schema.Types.Mixed,
         default: null

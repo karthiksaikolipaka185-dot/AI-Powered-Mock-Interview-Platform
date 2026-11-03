@@ -5,7 +5,8 @@ import {
     submitTextAnswer, 
     transcribeAudio, 
     runCode,
-    submitCode, 
+    submitCode,
+    saveCode,
     endInterview 
 } from '../../services/interviewService';
 
@@ -212,6 +213,18 @@ const InterviewPage = () => {
                             }
                         }
                     }
+
+                    // Restore coding session state from interview record on browser refresh
+                    if (data.codingProblem) {
+                        setActiveQuestionProblem(data.codingProblem);
+                        setActiveTab('code');
+                    }
+                    if (data.codingCurrentCode) {
+                        setRestoredCode(data.codingCurrentCode);
+                    }
+                    if (data.codingLanguage) {
+                        setRestoredLanguage(data.codingLanguage);
+                    }
                 }
                 
                 if (data.status === 'completed') {
@@ -233,6 +246,8 @@ const InterviewPage = () => {
     }, [id, location.state]);
 
     const [activeQuestionProblem, setActiveQuestionProblem] = useState(null);
+    const [restoredCode, setRestoredCode] = useState('');
+    const [restoredLanguage, setRestoredLanguage] = useState('python');
 
     const currentQuestion = questionsList[currentQuestionNum - 1] || null;
 
@@ -320,7 +335,8 @@ const InterviewPage = () => {
     const handleCodeRun = async (code, language) => {
         try {
             setIsRunningCode(true);
-            const result = await runCode(id, code, language, 'two-sum');
+            const probId = activeQuestionProblem?.id || null;
+            const result = await runCode(id, code, language, probId);
             setCodeExecutionResult(result);
         } catch (error) {
             console.error('Code run failed:', error);
@@ -335,7 +351,8 @@ const InterviewPage = () => {
             setIsSubmittingCode(true);
             stopAndCleanupAudio();
             setPhase('thinking');
-            const response = await submitCode(id, code, language, 'two-sum');
+            const probId = activeQuestionProblem?.id || null;
+            const response = await submitCode(id, code, language, probId);
             setCodeExecutionResult(response);
             processAnswerResult(response);
         } catch (error) {
@@ -343,6 +360,15 @@ const InterviewPage = () => {
             setPhase('listening');
         } finally {
             setIsSubmittingCode(false);
+        }
+    };
+
+    const handleCodeSave = async (code, language) => {
+        try {
+            const probId = activeQuestionProblem?.id || null;
+            await saveCode(id, code, language, probId);
+        } catch (error) {
+            console.warn('Auto-save failed:', error);
         }
     };
 
@@ -458,7 +484,13 @@ const InterviewPage = () => {
                                             <Code size={20} className="text-primary-theme" />
                                             <h3 className="text-xl font-extrabold text-text-main">{activeQuestionProblem.title || 'Coding Challenge'}</h3>
                                         </div>
-                                        <span className="px-3 py-1 bg-amber-500/10 text-amber-500 text-xs font-extrabold rounded-full border border-amber-500/20">
+                                        <span className={`px-3 py-1 text-xs font-extrabold rounded-full border ${
+                                            activeQuestionProblem.difficulty === 'Easy' 
+                                                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
+                                                : activeQuestionProblem.difficulty === 'Hard'
+                                                    ? 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                                                    : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                        }`}>
                                             {activeQuestionProblem.difficulty || 'Easy'}
                                         </span>
                                     </div>
@@ -482,18 +514,31 @@ const InterviewPage = () => {
                                         </div>
                                     )}
 
-                                    {activeQuestionProblem.publicTestCases && activeQuestionProblem.publicTestCases.length > 0 && (
+                                    {activeQuestionProblem.examples && activeQuestionProblem.examples.length > 0 ? (
+                                        <div className="space-y-2">
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary">Examples</h4>
+                                            {activeQuestionProblem.examples.map((ex, idx) => (
+                                                <div key={idx} className="bg-accent-theme p-3 rounded-xl border border-border-theme text-xs space-y-1">
+                                                    <div className="font-bold text-text-main">Example {idx + 1}:</div>
+                                                    <div><span className="text-text-secondary">Input:</span> <code className="text-primary-theme font-mono whitespace-pre-wrap">{typeof ex.input === 'object' ? JSON.stringify(ex.input) : ex.input}</code></div>
+                                                    <div><span className="text-text-secondary">Output:</span> <code className="text-emerald-500 font-mono whitespace-pre-wrap">{typeof ex.output === 'object' ? JSON.stringify(ex.output) : ex.output}</code></div>
+                                                    {ex.explanation && <div><span className="text-text-secondary">Explanation:</span> <span className="text-text-secondary">{ex.explanation}</span></div>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : activeQuestionProblem.publicTestCases && activeQuestionProblem.publicTestCases.length > 0 ? (
                                         <div className="space-y-2">
                                             <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary">Examples</h4>
                                             {activeQuestionProblem.publicTestCases.map((tc, idx) => (
                                                 <div key={idx} className="bg-accent-theme p-3 rounded-xl border border-border-theme text-xs space-y-1">
                                                     <div className="font-bold text-text-main">Example {idx + 1}:</div>
-                                                    <div><span className="text-text-secondary">Input:</span> <code className="text-primary-theme font-mono">{JSON.stringify(tc.input)}</code></div>
-                                                    <div><span className="text-text-secondary">Expected Output:</span> <code className="text-emerald-500 font-mono">{JSON.stringify(tc.expectedOutput)}</code></div>
+                                                    <div><span className="text-text-secondary">Input:</span> <code className="text-primary-theme font-mono whitespace-pre-wrap">{typeof tc.input === 'object' ? JSON.stringify(tc.input) : tc.input}</code></div>
+                                                    <div><span className="text-text-secondary">Expected Output:</span> <code className="text-emerald-500 font-mono whitespace-pre-wrap">{typeof tc.expectedOutput === 'object' ? JSON.stringify(tc.expectedOutput) : tc.expectedOutput}</code></div>
+                                                    {tc.description && <div className="text-[11px] text-text-secondary italic">{tc.description}</div>}
                                                 </div>
                                             ))}
                                         </div>
-                                    )}
+                                    ) : null}
 
                                     {activeQuestionProblem.constraints && activeQuestionProblem.constraints.length > 0 && (
                                         <div>
@@ -610,9 +655,12 @@ const InterviewPage = () => {
                                             <div className="flex-1 min-h-[350px]">
                                                 <CodeEditor 
                                                     interviewId={id}
-                                                    problemId="two-sum"
+                                                    problem={activeQuestionProblem}
+                                                    initialCode={restoredCode}
+                                                    initialLanguage={restoredLanguage}
                                                     onRun={handleCodeRun}
-                                                    onSubmit={handleCodeSubmit} 
+                                                    onSubmit={handleCodeSubmit}
+                                                    onSave={handleCodeSave}
                                                     isRunning={isRunningCode}
                                                     isSubmitting={isSubmittingCode}
                                                     executionResult={codeExecutionResult}

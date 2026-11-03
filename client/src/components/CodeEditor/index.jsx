@@ -1,61 +1,134 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
-import { Code, Terminal, Play, CheckCircle, ChevronDown, Check, X, ShieldAlert, Cpu, AlertTriangle } from 'lucide-react';
+import { Code, Terminal, Play, CheckCircle, ChevronDown, Check, X, ShieldAlert, Cpu, AlertTriangle, Save } from 'lucide-react';
 
-const DEFAULT_STARTER_CODE = {
-    python: `# Python 3.10 Solution\ndef two_sum(nums, target):\n    # Write your solution here\n    seen = {}\n    for i, num in enumerate(nums):\n        diff = target - num\n        if diff in seen:\n            return [seen[diff], i]\n        seen[num] = i\n    return []\n`,
-    javascript: `// Node.js (JavaScript) Solution\nfunction twoSum(nums, target) {\n    // Write your solution here\n    const map = new Map();\n    for (let i = 0; i < nums.length; i++) {\n        const diff = target - nums[i];\n        if (map.has(diff)) return [map.get(diff), i];\n        map.set(nums[i], i);\n    }\n    return [];\n}\n`,
-    java: `// Java 17 Solution\nimport java.util.*;\n\npublic class Solution {\n    public static int[] twoSum(int[] nums, int target) {\n        Map<Integer, Integer> map = new HashMap<>();\n        for (int i = 0; i < nums.length; i++) {\n            int diff = target - nums[i];\n            if (map.containsKey(diff)) {\n                return new int[]{map.get(diff), i};\n            }\n            map.put(nums[i], i);\n        }\n        return new int[]{};\n    }\n}\n`,
-    cpp: `// C++17 Solution\n#include <vector>\n#include <unordered_map>\nusing namespace std;\n\nvector<int> twoSum(vector<int>& nums, int target) {\n    unordered_map<int, int> map;\n    for (int i = 0; i < nums.size(); i++) {\n        int diff = target - nums[i];\n        if (map.count(diff)) {\n            return {map[diff], i};\n        }\n        map[nums[i]] = i;\n    }\n    return {};\n}\n`
+const GENERIC_STARTER_CODE = {
+    python: `# Python 3.10\ndef solve():\n    # Write your solution here\n    pass\n`,
+    javascript: `// Node.js (JavaScript)\nfunction solve() {\n    // Write your solution here\n}\n`,
+    java: `// Java 17\nclass Solution {\n    public void solve() {\n        // Write your solution here\n    }\n}\n`,
+    cpp: `// C++17\nclass Solution {\npublic:\n    void solve() {\n        // Write your solution here\n    }\n};\n`
 };
 
-const CodeEditor = ({ interviewId = 'default', problemId = 'two-sum', onRun, onSubmit, isRunning = false, isSubmitting = false, executionResult = null }) => {
-    const [language, setLanguage] = useState('python');
-    const [codeState, setCodeState] = useState(DEFAULT_STARTER_CODE);
-    const [currentCode, setCurrentCode] = useState(DEFAULT_STARTER_CODE.python);
+const CodeEditor = ({
+    interviewId = 'default',
+    problem = null,
+    initialCode = '',
+    initialLanguage = 'python',
+    onRun,
+    onSubmit,
+    onSave,
+    isRunning = false,
+    isSubmitting = false,
+    executionResult = null
+}) => {
+    const [language, setLanguage] = useState(initialLanguage || 'python');
+    const [codeState, setCodeState] = useState({});
+    const [currentCode, setCurrentCode] = useState('');
     const [activeResultTab, setActiveResultTab] = useState('tests'); // 'tests' | 'output'
+    const [isSavingDraft, setIsSavingDraft] = useState(false);
 
+    const problemId = problem?.id || 'default_prob';
     const getDraftKey = (lang) => `mock-interview:draft:${interviewId}:${problemId}:${lang}`;
 
-    // Load persisted draft on mount or when language/interview/problem changes
-    useEffect(() => {
-        const savedDraft = localStorage.getItem(getDraftKey(language));
-        if (savedDraft) {
-            setCurrentCode(savedDraft);
-            setCodeState(prev => ({ ...prev, [language]: savedDraft }));
-        } else {
-            const initialCode = codeState[language] || DEFAULT_STARTER_CODE[language] || '';
-            setCurrentCode(initialCode);
+    // Get canonical starter code for a language from the problem definition (NEVER containing solutions)
+    const getStarterCodeForLanguage = (lang) => {
+        if (problem?.starterCode && problem.starterCode[lang]) {
+            return problem.starterCode[lang];
         }
-    }, [language, interviewId, problemId]);
+        return GENERIC_STARTER_CODE[lang] || '';
+    };
 
-    // Synchronize language change without losing code drafts
+    // Load persisted draft or problem starter code when problem, language, or interviewId changes
+    useEffect(() => {
+        const targetLang = initialLanguage || language || 'python';
+        setLanguage(targetLang);
+
+        const draftKey = `mock-interview:draft:${interviewId}:${problemId}:${targetLang}`;
+        const localDraft = localStorage.getItem(draftKey);
+
+        if (initialCode && initialCode.trim()) {
+            setCurrentCode(initialCode);
+            setCodeState(prev => ({ ...prev, [targetLang]: initialCode }));
+        } else if (localDraft && localDraft.trim()) {
+            setCurrentCode(localDraft);
+            setCodeState(prev => ({ ...prev, [targetLang]: localDraft }));
+        } else {
+            const starter = getStarterCodeForLanguage(targetLang);
+            setCurrentCode(starter);
+            setCodeState(prev => ({ ...prev, [targetLang]: starter }));
+        }
+    }, [problemId, interviewId]);
+
+    // Update code when initialCode changes externally (e.g. backend restore)
+    useEffect(() => {
+        if (initialCode && initialCode !== currentCode) {
+            setCurrentCode(initialCode);
+            setCodeState(prev => ({ ...prev, [language]: initialCode }));
+        }
+    }, [initialCode]);
+
+    // Handle language change with confirmation if candidate modified the code
     const handleLanguageChange = (newLang) => {
+        if (newLang === language) return;
+
+        const currentStarter = getStarterCodeForLanguage(language);
+        const hasModifiedCurrent = currentCode.trim() !== currentStarter.trim();
+
+        if (hasModifiedCurrent) {
+            const confirmSwitch = window.confirm(
+                `Switching to ${newLang.toUpperCase()} will load its starter template. Your current work for ${language.toUpperCase()} will be saved in your draft history. Do you want to proceed?`
+            );
+            if (!confirmSwitch) return;
+        }
+
         // Save current code to draft state and localStorage
         if (currentCode) {
             localStorage.setItem(getDraftKey(language), currentCode);
+            if (onSave) onSave(currentCode, language);
         }
-        setCodeState(prev => ({
-            ...prev,
-            [language]: currentCode
-        }));
+        setCodeState(prev => ({ ...prev, [language]: currentCode }));
+
         setLanguage(newLang);
-        
-        // Load target language draft from localStorage or fallback
-        const savedTargetDraft = localStorage.getItem(getDraftKey(newLang));
-        const targetCode = savedTargetDraft || codeState[newLang] || DEFAULT_STARTER_CODE[newLang] || '';
+
+        // Load new language: draft or starter code
+        const targetDraftKey = getDraftKey(newLang);
+        const savedTargetDraft = localStorage.getItem(targetDraftKey);
+        const targetCode = (savedTargetDraft && savedTargetDraft.trim())
+            ? savedTargetDraft
+            : (codeState[newLang] || getStarterCodeForLanguage(newLang));
+
         setCurrentCode(targetCode);
+        setCodeState(prev => ({ ...prev, [newLang]: targetCode }));
     };
 
+    // Handle editor text change
     const handleCodeChange = (value) => {
         const val = value || '';
         setCurrentCode(val);
-        setCodeState(prev => ({
-            ...prev,
-            [language]: val
-        }));
-        localStorage.setItem(getDraftKey(language), val);
+        setCodeState(prev => ({ ...prev, [language]: val }));
+        try {
+            localStorage.setItem(getDraftKey(language), val);
+        } catch (e) {}
     };
+
+    // Auto-save debounce to backend
+    const saveTimeoutRef = useRef(null);
+    useEffect(() => {
+        if (!currentCode) return;
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+
+        saveTimeoutRef.current = setTimeout(() => {
+            if (onSave) {
+                setIsSavingDraft(true);
+                Promise.resolve(onSave(currentCode, language))
+                    .finally(() => setIsSavingDraft(false));
+            }
+        }, 1500);
+
+        return () => {
+            if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        };
+    }, [currentCode, language]);
 
     const handleRunClick = async () => {
         setActiveResultTab('tests');
@@ -98,6 +171,13 @@ const CodeEditor = ({ interviewId = 'default', problemId = 'two-sum', onRun, onS
                         </select>
                         <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-white transition-colors" />
                     </div>
+
+                    {isSavingDraft && (
+                        <span className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
+                            <Save size={11} className="animate-pulse text-emerald-400" />
+                            Auto-saving...
+                        </span>
+                    )}
                 </div>
 
                 {/* Execution Actions */}
@@ -106,7 +186,7 @@ const CodeEditor = ({ interviewId = 'default', problemId = 'two-sum', onRun, onS
                         onClick={handleRunClick}
                         disabled={!currentCode.trim() || isRunning || isSubmitting}
                         className="flex items-center gap-2 bg-slate-800 text-slate-200 border border-slate-700 px-4 py-1.5 rounded-xl text-xs font-bold hover:bg-slate-700 hover:text-white active:scale-95 transition-all disabled:opacity-50"
-                        title="Run against public test cases"
+                        title="Run code against public example test cases"
                     >
                         {isRunning ? <Cpu size={14} className="animate-spin text-primary-theme" /> : <Play size={14} className="text-emerald-400" fill="currentColor" />}
                         <span>{isRunning ? 'Running...' : 'Run Code'}</span>
@@ -116,7 +196,7 @@ const CodeEditor = ({ interviewId = 'default', problemId = 'two-sum', onRun, onS
                         onClick={handleSubmitClick}
                         disabled={!currentCode.trim() || isRunning || isSubmitting}
                         className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-1.5 rounded-xl text-xs font-bold hover:bg-emerald-500 active:scale-95 transition-all disabled:opacity-50 shadow-md shadow-emerald-900/30"
-                        title="Submit code for public + hidden test evaluation"
+                        title="Submit code for full evaluation across public and hidden test cases"
                     >
                         {isSubmitting ? <CheckCircle size={14} className="animate-spin" /> : <CheckCircle size={14} />}
                         <span>{isSubmitting ? 'Evaluating...' : 'Submit Solution'}</span>
@@ -187,15 +267,15 @@ const CodeEditor = ({ interviewId = 'default', problemId = 'two-sum', onRun, onS
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] mt-2 opacity-90">
                                     <div>
                                         <span className="text-slate-500 block text-[10px] uppercase font-sans">Input</span>
-                                        <code className="bg-black/40 px-2 py-1 rounded block mt-0.5">{JSON.stringify(res.input)}</code>
+                                        <code className="bg-black/40 px-2 py-1 rounded block mt-0.5 whitespace-pre-wrap">{typeof res.input === 'object' ? JSON.stringify(res.input) : String(res.input)}</code>
                                     </div>
                                     <div>
                                         <span className="text-slate-500 block text-[10px] uppercase font-sans">Expected Output</span>
-                                        <code className="bg-black/40 px-2 py-1 rounded block mt-0.5">{JSON.stringify(res.expectedOutput)}</code>
+                                        <code className="bg-black/40 px-2 py-1 rounded block mt-0.5 whitespace-pre-wrap">{typeof res.expectedOutput === 'object' ? JSON.stringify(res.expectedOutput) : String(res.expectedOutput)}</code>
                                     </div>
                                     <div className="sm:col-span-2">
                                         <span className="text-slate-500 block text-[10px] uppercase font-sans">Actual Output</span>
-                                        <code className="bg-black/40 px-2 py-1 rounded block mt-0.5">{res.actualOutput || '(no output)'}</code>
+                                        <code className="bg-black/40 px-2 py-1 rounded block mt-0.5 whitespace-pre-wrap">{res.actualOutput || '(no output)'}</code>
                                     </div>
                                 </div>
                             </div>
@@ -220,8 +300,11 @@ const CodeEditor = ({ interviewId = 'default', problemId = 'two-sum', onRun, onS
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1">
                         <Terminal size={12} />
-                        <span>Playground Active</span>
+                        <span>Interactive Sandbox</span>
                     </div>
+                    {problem?.topic && (
+                        <span className="opacity-80">Topic: {problem.topic}</span>
+                    )}
                 </div>
                 <div className="flex items-center gap-4">
                     <span>UTF-8</span>

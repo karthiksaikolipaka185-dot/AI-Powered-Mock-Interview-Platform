@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const Interview = require('../models/Interview.model');
-const { startInterview, submitAnswer, submitCode, endInterview, getInterviewById } = require('../services/interview.service');
+const { startInterview, submitAnswer, runCode, submitCode, saveCode, endInterview, getInterviewById } = require('../services/interview.service');
 const { transcribeAudio } = require('../services/assemblyai.service');
 const { streamAudio } = require('../services/murf.service');
 
@@ -124,6 +124,18 @@ const submitCodeController = async (req, res, next) => {
     }
 };
 
+const saveCodeController = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { code, language, problemId } = req.body;
+        const userId = req.user?.userId || req.user?._id || req.user?.id;
+        const result = await saveCode(id, code, language, problemId, userId);
+        return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+};
+
 const endInterviewController = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -186,6 +198,7 @@ module.exports = {
     submitVoiceAnswer,
     runCode: runCodeController,
     submitCode: submitCodeController,
+    saveCode: saveCodeController,
     endInterview: endInterviewController,
     getInterview,
     transcribeOnly,

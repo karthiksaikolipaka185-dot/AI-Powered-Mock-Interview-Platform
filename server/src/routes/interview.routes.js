@@ -7,6 +7,7 @@ const {
     submitVoiceAnswer,
     runCode,
     submitCode,
+    saveCode,
     endInterview,
     getInterview,
     transcribeOnly,
@@ -37,6 +38,9 @@ router.post('/:id/voice-answer', uploadAudio, submitVoiceAnswer);
 
 // 5. POST /:id/code/run (Run code against public test cases)
 router.post('/:id/code/run', runCode);
+
+// POST /:id/code/save (Persist candidate code draft)
+router.post('/:id/code/save', saveCode);
 
 // 6. POST /:id/code/submit (Submit code against public + hidden test cases)
 router.post('/:id/code/submit', submitCode);
